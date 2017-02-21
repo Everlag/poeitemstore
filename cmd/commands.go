@@ -6,11 +6,17 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/Everlag/gothing/db"
 	"github.com/Everlag/gothing/stash"
+	"github.com/boltdb/bolt"
 )
 
-// RootCmd is the root command...
-var RootCmd = &cobra.Command{
+// db is a pointer to a database
+// that should be valid on calling any command.
+var bdb *bolt.DB
+
+// rootCmd is the root command...
+var rootCmd = &cobra.Command{
 	Use:   "thing",
 	Short: "run the thing",
 	Long:  "run the thing and this is supposed to be helpful D:",
@@ -46,7 +52,46 @@ var checkCmd = &cobra.Command{
 	},
 }
 
+var addNamesCmd = &cobra.Command{
+	Use:   "addNames",
+	Short: "add all names in cached stash update",
+	Long:  "get the stash update from disk, deserialize it, and add all property names it contains to the database",
+	Run: func(cmd *cobra.Command, args []string) {
+		resp, err := stash.GetStored()
+		if err != nil {
+			fmt.Printf("failed to read cached stash data, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		if err := db.AddPropertyNamesFromResponse(resp, bdb); err != nil {
+			fmt.Printf("failed to add property names, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		var count int
+		count, err = db.PropertyNameCount(bdb)
+		if err != nil {
+			fmt.Printf("failed to get property name count, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("added property names, %d properties exist\n", count)
+	},
+}
+
 func init() {
-	RootCmd.AddCommand(fetchCmd)
-	RootCmd.AddCommand(checkCmd)
+	rootCmd.AddCommand(fetchCmd)
+	rootCmd.AddCommand(checkCmd)
+	rootCmd.AddCommand(addNamesCmd)
+}
+
+// HandleCommands runs commands after setting up
+// necessary preconditions
+func HandleCommands(db *bolt.DB) {
+	bdb = db
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 }
