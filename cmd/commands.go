@@ -6,6 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"unsafe"
+
 	"github.com/Everlag/gothing/db"
 	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
@@ -102,11 +104,40 @@ var lookupPropertyCmd = &cobra.Command{
 	},
 }
 
+var tryCompactyCmd = &cobra.Command{
+	Use:   "tryCompact",
+	Short: "attempt to compact all items in cached stash update",
+	Long:  "get the stash update from disk, deserialize it, and try compacting items, this will result in db writes",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		resp, err := stash.GetStored()
+		if err != nil {
+			fmt.Printf("failed to read cached stash data, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		// Flatten the items
+		items := make([]stash.Item, 0)
+		for _, stash := range resp.Stashes {
+			items = append(items, stash.Items...)
+		}
+
+		compact, err := db.StashItemsToCompact(items, bdb)
+		if err != nil {
+			fmt.Printf("failed to convert fat items to compact, err=%s\n", err)
+			os.Exit(-1)
+		}
+		compactSize := unsafe.Sizeof(db.Item{})
+		fmt.Printf("compact size is %d bytes\n", int(compactSize)*len(compact))
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(addNamesCmd)
 	rootCmd.AddCommand(lookupPropertyCmd)
+	rootCmd.AddCommand(tryCompactyCmd)
 }
 
 // HandleCommands runs commands after setting up
