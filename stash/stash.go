@@ -8,6 +8,46 @@ import (
 	"os"
 )
 
+// PropertyValue holds a string value alongside an
+// associated PrintKey
+type PropertyValue struct {
+	Value    string
+	PrintKey int
+}
+
+// UnmarshalJSON implements custom deserialization for this type
+//
+// Typically, the GGG api will return [string, int] which is very unhelpful,
+// so we take care of that right here
+func (v *PropertyValue) UnmarshalJSON(b []byte) error {
+	var raw []interface{}
+
+	err := json.Unmarshal(b, &raw)
+	if err != nil {
+		return fmt.Errorf("invalid property pair, unparseable, err=%s", err)
+	}
+
+	if len(raw) != 2 {
+		return fmt.Errorf("invalid property pair, (len()==%d)!=2", len(raw))
+	}
+
+	var ok bool
+	v.Value, ok = raw[0].(string)
+	if !ok {
+		return fmt.Errorf("invalid property pair, first element not string")
+	}
+
+	// We have to use the widest possible type here and narrow...
+	var broad float64
+	broad, ok = raw[1].(float64)
+	if !ok {
+		return fmt.Errorf("invalid property pair, second element not float64")
+	}
+	v.PrintKey = int(broad)
+
+	return nil
+}
+
 // Item represents a single item found from the stash api
 type Item struct {
 	Verified     bool     `json:"verified"`
@@ -24,9 +64,9 @@ type Item struct {
 	FlavourText  []string `json:"flavourText,omitempty"`
 	Note         string   `json:"note,omitempty"`
 	Properties   []struct {
-		Name        string        `json:"name"`
-		Values      []interface{} `json:"values"`
-		DisplayMode int           `json:"displayMode"`
+		Name        string          `json:"name"`
+		Values      []PropertyValue `json:"values"`
+		DisplayMode int             `json:"displayMode"`
 	} `json:"properties,omitempty"`
 	UtilityMods []string `json:"utilityMods,omitempty"`
 	DescrText   string   `json:"descrText,omitempty"`
