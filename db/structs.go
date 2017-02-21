@@ -93,7 +93,7 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 	for i, item := range items {
 		compact[i] = Item{
 			ID:         IDFromUID(item.ID),
-			Stash:      ID{}, //Explicity nil, TODO fill in...
+			Stash:      IDFromUID(item.StashID),
 			Name:       nameIds[i],
 			TypeLine:   typeLineIds[i],
 			Note:       noteIds[i],

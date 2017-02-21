@@ -138,6 +138,10 @@ type Item struct {
 	Properties   []Property `json:"properties,omitempty"`
 	UtilityMods  []string   `json:"utilityMods,omitempty"`
 	DescrText    string     `json:"descrText,omitempty"`
+	// Additional data not present in response
+	StashID    string `json:"-"`
+	RootType   string `json:"-"`
+	RootFlavor string `json:"-"`
 }
 
 // Stash represents a stash tab with items and associated metadata
@@ -176,6 +180,21 @@ func GetStored() (*Response, error) {
 	err = decoder.Decode(&response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
+	}
+
+	// Add additioanl data to items
+	for _, stash := range response.Stashes {
+		for _, item := range stash.Items {
+			item.StashID = stash.ID
+			flavor, root, ok := MatchBase(item.TypeLine)
+			if !ok {
+				item.RootType = item.TypeLine
+				item.RootFlavor = item.TypeLine
+			} else {
+				item.RootType = root
+				item.RootFlavor = flavor
+			}
+		}
 	}
 
 	return &response, nil
