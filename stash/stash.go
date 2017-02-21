@@ -113,42 +113,48 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// Property represents a single item property
+type Property struct {
+	Name        string          `json:"name"`
+	Values      []PropertyValue `json:"values"`
+	DisplayMode int             `json:"displayMode"`
+}
+
 // Item represents a single item found from the stash api
 type Item struct {
-	Verified     bool      `json:"verified"`
-	Ilvl         int       `json:"ilvl"`
-	Icon         string    `json:"icon"`
-	League       string    `json:"league"`
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	TypeLine     string    `json:"typeLine"`
-	Identified   bool      `json:"identified"`
-	Corrupted    bool      `json:"corrupted"`
-	ImplicitMods []ItemMod `json:"implicitMods,omitempty"`
-	ExplicitMods []ItemMod `json:"explicitMods,omitempty"`
-	FlavourText  []string  `json:"flavourText,omitempty"`
-	Note         string    `json:"note,omitempty"`
-	Properties   []struct {
-		Name        string          `json:"name"`
-		Values      []PropertyValue `json:"values"`
-		DisplayMode int             `json:"displayMode"`
-	} `json:"properties,omitempty"`
-	UtilityMods []string `json:"utilityMods,omitempty"`
-	DescrText   string   `json:"descrText,omitempty"`
+	Verified     bool       `json:"verified"`
+	Ilvl         int        `json:"ilvl"`
+	Icon         string     `json:"icon"`
+	League       string     `json:"league"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	TypeLine     string     `json:"typeLine"`
+	Identified   bool       `json:"identified"`
+	Corrupted    bool       `json:"corrupted"`
+	ImplicitMods []ItemMod  `json:"implicitMods,omitempty"`
+	ExplicitMods []ItemMod  `json:"explicitMods,omitempty"`
+	FlavourText  []string   `json:"flavourText,omitempty"`
+	Note         string     `json:"note,omitempty"`
+	Properties   []Property `json:"properties,omitempty"`
+	UtilityMods  []string   `json:"utilityMods,omitempty"`
+	DescrText    string     `json:"descrText,omitempty"`
+}
+
+// Stash represents a stash tab with items and associated metadata
+type Stash struct {
+	AccountName       string `json:"accountName"`
+	LastCharacterName string `json:"lastCharacterName"`
+	ID                string `json:"id"`
+	Stash             string `json:"stash"`
+	StashType         string `json:"stashType"`
+	Items             []Item `json:"items"`
+	Public            bool   `json:"public"`
 }
 
 // Response represents expected structure of a stash api call
 type Response struct {
-	NextChangeID string `json:"next_change_id"`
-	Stashes      []struct {
-		AccountName       string `json:"accountName"`
-		LastCharacterName string `json:"lastCharacterName"`
-		ID                string `json:"id"`
-		Stash             string `json:"stash"`
-		StashType         string `json:"stashType"`
-		Items             []Item `json:"items"`
-		Public            bool   `json:"public"`
-	} `json:"stashes"`
+	NextChangeID string  `json:"next_change_id"`
+	Stashes      []Stash `json:"stashes"`
 }
 
 // StashAPIBase is the URL the stash api is located at
