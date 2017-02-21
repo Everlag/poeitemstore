@@ -79,10 +79,34 @@ var addNamesCmd = &cobra.Command{
 	},
 }
 
+var lookupPropertyCmd = &cobra.Command{
+	Use:   "lookupProperty [\"property to lookup\"]",
+	Short: "lookup the integer identifier for a property",
+	Long:  "get the database and lookup a property",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Println("please provide property")
+			os.Exit(-1)
+		}
+		property := args[0]
+
+		index, err := db.GetPropertyID(property, bdb)
+
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("%s = %d\n", property, index)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(addNamesCmd)
+	rootCmd.AddCommand(lookupPropertyCmd)
 }
 
 // HandleCommands runs commands after setting up

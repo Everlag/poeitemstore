@@ -19,8 +19,14 @@ var bucketNames = [...]string{propertyNameBucket}
 // Courtesy of boltdb dev logs
 func itob(v uint64) []byte {
 	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(v))
+	binary.BigEndian.PutUint64(b, v)
 	return b
+}
+
+// btoi returns a PutUint64 from its 8-byte big endian representation.
+// Courtesy of boltdb dev logs
+func btoi(b []byte) uint64 {
+	return binary.BigEndian.Uint64(b)
 }
 
 func setupBuckets(db *bolt.DB) error {
@@ -71,6 +77,27 @@ func AddPropertyNamesFromResponse(resp *stash.Response, db *bolt.DB) error {
 				}
 			}
 		}
+		return nil
+	})
+}
+
+// GetPropertyID returns the integer value associated with a property name
+func GetPropertyID(property string, db *bolt.DB) (uint64, error) {
+	var index uint64
+
+	return index, db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(propertyNameBucket))
+		if b == nil {
+			return fmt.Errorf("propertyNameBucket bucket not found")
+		}
+
+		indexBytes := b.Get([]byte(property))
+		if indexBytes == nil {
+			return fmt.Errorf("property not found")
+		}
+
+		index = btoi(indexBytes)
+
 		return nil
 	})
 }
