@@ -15,6 +15,15 @@ type PropertyValue struct {
 	PrintKey int
 }
 
+// MarshalJSON implements custom serialization for this type
+func (v *PropertyValue) MarshalJSON() ([]byte, error) {
+	raw := make([]interface{}, 2)
+	raw[0] = v.Value
+	raw[1] = v.PrintKey
+
+	return json.Marshal(raw)
+}
+
 // UnmarshalJSON implements custom deserialization for this type
 //
 // Typically, the GGG api will return [string, int] which is very unhelpful,
