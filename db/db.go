@@ -13,7 +13,10 @@ const DBLocation string = "poe.db"
 
 const propertyNameBucket string = "propertyNames"
 
-var bucketNames = [...]string{propertyNameBucket}
+var bucketNames = [...]string{
+	propertyNameBucket,
+	stringHeapBucket, stringHeapInverseBucket,
+}
 
 // itob returns an 8-byte big endian representation of v.
 // Courtesy of boltdb dev logs
