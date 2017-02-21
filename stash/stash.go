@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 )
 
 // PropertyValue holds a string value alongside an
@@ -57,21 +59,75 @@ func (v *PropertyValue) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// Regexes we use for ItemMod parsing
+var numberRegex = regexp.MustCompile(`\d{1,}`) // Grabbing digits
+var hashRegex = regexp.MustCompile("#")        // Filling templates
+
+// ItemMod is a modifier an item can have
+type ItemMod struct {
+	Template []byte
+	Values   []int
+}
+
+// MarshalJSON implements custom serialization for this type
+func (m *ItemMod) MarshalJSON() ([]byte, error) {
+	result := []byte(m.Template)
+
+	for _, value := range m.Values {
+
+		loc := hashRegex.FindIndex(result)
+		if loc == nil {
+			return nil, fmt.Errorf("failed to match template string slot with expected value")
+		}
+
+		insert := []byte(strconv.Itoa(value))
+
+		portion := hashRegex.ReplaceAll(result[:loc[1]], insert)
+		result = append(portion, result[loc[1]:]...)
+	}
+
+	return result, nil
+}
+
+// UnmarshalJSON implements custom deserialization for this type
+//
+// Typically, the GGG api will return string which we run through
+// regexp for ease
+func (m *ItemMod) UnmarshalJSON(b []byte) error {
+	// Find magnitudes in the mod
+	matches := numberRegex.FindAll(b, -1)
+
+	// Grab the template string representing the mod
+	m.Template = numberRegex.ReplaceAll(b, []byte("#"))
+
+	// Convert the matches to numbers
+	m.Values = make([]int, len(matches))
+	var err error
+	for i, match := range matches {
+		m.Values[i], err = strconv.Atoi(string(match))
+		if err != nil {
+			return fmt.Errorf("failed to convert match to int, err=%s", err)
+		}
+	}
+
+	return nil
+}
+
 // Item represents a single item found from the stash api
 type Item struct {
-	Verified     bool     `json:"verified"`
-	Ilvl         int      `json:"ilvl"`
-	Icon         string   `json:"icon"`
-	League       string   `json:"league"`
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	TypeLine     string   `json:"typeLine"`
-	Identified   bool     `json:"identified"`
-	Corrupted    bool     `json:"corrupted"`
-	ImplicitMods []string `json:"implicitMods,omitempty"`
-	ExplicitMods []string `json:"explicitMods,omitempty"`
-	FlavourText  []string `json:"flavourText,omitempty"`
-	Note         string   `json:"note,omitempty"`
+	Verified     bool      `json:"verified"`
+	Ilvl         int       `json:"ilvl"`
+	Icon         string    `json:"icon"`
+	League       string    `json:"league"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	TypeLine     string    `json:"typeLine"`
+	Identified   bool      `json:"identified"`
+	Corrupted    bool      `json:"corrupted"`
+	ImplicitMods []ItemMod `json:"implicitMods,omitempty"`
+	ExplicitMods []ItemMod `json:"explicitMods,omitempty"`
+	FlavourText  []string  `json:"flavourText,omitempty"`
+	Note         string    `json:"note,omitempty"`
 	Properties   []struct {
 		Name        string          `json:"name"`
 		Values      []PropertyValue `json:"values"`
