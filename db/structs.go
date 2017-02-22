@@ -20,11 +20,26 @@ type StringHeapID uint64
 // StringHeapIDFromBytes generats the corresponding heap id
 // from the provided bytes
 func StringHeapIDFromBytes(bytes []byte) StringHeapID {
-	return StringHeapID(btoi(bytes))
+	return StringHeapID(btoi64(bytes))
 }
 
 func StringHeapIDToBytes(id StringHeapID) []byte {
-	return itob(uint64(id))
+	return i64tob(uint64(id))
+}
+
+// LeagueHeapID maps to a stored string identifier specific to league
+//
+// This is basically StringHeapID but specialised for leagues
+type LeagueHeapID uint16
+
+// LeagueHeapIDFromBytes generats the corresponding heap id
+// from the provided bytes
+func LeagueHeapIDFromBytes(bytes []byte) LeagueHeapID {
+	return LeagueHeapID(btoi16(bytes))
+}
+
+func LeagueHeapIDToBytes(id LeagueHeapID) []byte {
+	return i64tob(uint64(id))
 }
 
 // IDSize is the size in bytes a derived ID can be
@@ -56,9 +71,9 @@ type Item struct {
 	Name       StringHeapID // On StringHeap
 	TypeLine   StringHeapID // On StringHeap
 	Note       StringHeapID // On StringHeap
-	League     StringHeapID // On StringHeap
 	RootType   StringHeapID // On StringHeap
 	RootFlavor StringHeapID // On StringHeap
+	League     LeagueHeapID // On LeagueHeap
 	Corrupted  bool
 	Identified bool
 }
@@ -101,10 +116,10 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 		return nil,
 			fmt.Errorf("failed to add notes to StringHeap, err=%s", err)
 	}
-	leagueIds, err := SetStrings(leagues, db)
+	leagueIds, err := SetLeagues(leagues, db)
 	if err != nil {
 		return nil,
-			fmt.Errorf("failed to add leagues to StringHeap, err=%s", err)
+			fmt.Errorf("failed to add leagues to LeagueHeap, err=%s", err)
 	}
 	rootTypeIds, err := SetStrings(rootTypes, db)
 	if err != nil {
@@ -165,6 +180,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	compactItems, err := StashItemsToCompact(flatItems, db)
 	if err != nil {
 		err = fmt.Errorf("failed to compact items, err=%s", err)
+		return nil, nil, err
 	}
 
 	return compact, compactItems, nil

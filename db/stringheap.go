@@ -30,14 +30,14 @@ func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to get NextSequence in %s", stringHeapBucket)
 	}
-	heap.Put([]byte(index), itob(seq))
+	heap.Put([]byte(index), i64tob(seq))
 
 	// Also add it to the inverseBucket
 	var inverter *bolt.Bucket
 	if inverter = tx.Bucket([]byte(stringHeapInverseBucket)); inverter == nil {
 		return 0, fmt.Errorf("%s not found", stringHeapInverseBucket)
 	}
-	inverter.Put(itob(seq), []byte(index))
+	inverter.Put(i64tob(seq), []byte(index))
 
 	return StringHeapID(seq), nil
 

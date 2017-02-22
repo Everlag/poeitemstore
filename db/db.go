@@ -16,22 +16,37 @@ const propertyNameBucket string = "propertyNames"
 var bucketNames = [...]string{
 	propertyNameBucket,
 	stringHeapBucket, stringHeapInverseBucket,
+	leagueHeapBucket, leagueHeapInverseBucket,
 	updateSnapshotHistoryBuckets,
 	itemStoreBucket,
 }
 
-// itob returns an 8-byte big endian representation of v.
+// i64tob returns an 8-byte big endian representation of v.
 // Courtesy of boltdb dev logs
-func itob(v uint64) []byte {
+func i64tob(v uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, v)
 	return b
 }
 
-// btoi returns a PutUint64 from its 8-byte big endian representation.
+// btoi64 returns a PutUint64 from its 8-byte big endian representation.
 // Courtesy of boltdb dev logs
-func btoi(b []byte) uint64 {
+func btoi64(b []byte) uint64 {
 	return binary.BigEndian.Uint64(b)
+}
+
+// i16tob returns an 2-byte big endian representation of v.
+// Courtesy of boltdb dev logs
+func i16tob(v uint16) []byte {
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, v)
+	return b
+}
+
+// btoi returns a PutUint16 from its 2-byte big endian representation.
+// Courtesy of boltdb dev logs
+func btoi16(b []byte) uint16 {
+	return binary.BigEndian.Uint16(b)
 }
 
 func setupBuckets(db *bolt.DB) error {
@@ -63,7 +78,7 @@ func addPropertyName(property string, tx *bolt.Tx) error {
 	if err != nil {
 		return fmt.Errorf("failed to get NextSequence in propertyNameBucket")
 	}
-	b.Put([]byte(property), itob(seq))
+	b.Put([]byte(property), i64tob(seq))
 
 	return nil
 }
@@ -101,7 +116,7 @@ func GetPropertyID(property string, db *bolt.DB) (uint64, error) {
 			return fmt.Errorf("property not found")
 		}
 
-		index = btoi(indexBytes)
+		index = btoi64(indexBytes)
 
 		return nil
 	})

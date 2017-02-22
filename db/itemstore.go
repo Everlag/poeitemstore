@@ -12,14 +12,14 @@ const itemStoreBucket string = "itemStore"
 // to a specific league
 //
 // Will either panic or return a valid bucket.
-func getLeagueBucket(league StringHeapID, tx *bolt.Tx) *bolt.Bucket {
+func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 	// Grab root Bucket
 	rootBucket := tx.Bucket([]byte(itemStoreBucket))
 	if rootBucket == nil {
 		panic(fmt.Sprintf("root item store bucket not found %s, ", itemStoreBucket))
 	}
 
-	leagueBytes := StringHeapIDToBytes(league)
+	leagueBytes := LeagueHeapIDToBytes(league)
 	leagueBucket := rootBucket.Bucket(leagueBytes)
 	if leagueBucket == nil {
 		var err error
@@ -71,6 +71,11 @@ func AddItems(items []Item, db *bolt.DB) error {
 	})
 
 }
+
+// // GetItems returns a compact Item for each ID provided
+// func GetItems(ids []ID, db *bolt.DB) []Item  {
+
+// }
 
 // ItemStoreCount returns the number of items across all leagues
 func ItemStoreCount(db *bolt.DB) (int, error) {
