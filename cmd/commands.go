@@ -152,7 +152,18 @@ var storeItemsCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 
-		fmt.Printf("items stored done, %d items added\n", len(cItems))
+		var count int
+		count, err = db.ItemStoreCount(bdb)
+		if err != nil {
+			fmt.Printf("failed to get item count, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		representativeItem := db.Item{}
+		serialItemSize := representativeItem.Msgsize()
+
+		fmt.Printf("items stored done, %d items added, %d items total, itemSize=%d bytes\n",
+			len(cItems), count, serialItemSize)
 	},
 }
 
