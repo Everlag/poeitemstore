@@ -16,7 +16,8 @@ const propertyNameBucket string = "propertyNames"
 var bucketNames = [...]string{
 	propertyNameBucket,
 	stringHeapBucket, stringHeapInverseBucket,
-    updateSnapshotHistoryBuckets,
+	updateSnapshotHistoryBuckets,
+	itemStoreBucket,
 }
 
 // itob returns an 8-byte big endian representation of v.

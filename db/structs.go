@@ -23,6 +23,10 @@ func StringHeapIDFromBytes(bytes []byte) StringHeapID {
 	return StringHeapID(btoi(bytes))
 }
 
+func StringHeapIDToBytes(id StringHeapID) []byte {
+	return itob(uint64(id))
+}
+
 // IDSize is the size in bytes a derived ID can be
 const IDSize = 12
 
