@@ -41,26 +41,28 @@ func AddItems(items []Item, db *bolt.DB) error {
 		return nil
 	}
 
-	// Allocate a buffer to place our serialized items
+	// NOTE: we cannot preallocate the buffer for marshalling
+	// each item as the buffer must remain constant post-Put
+	// for the duration of the transaction.
 	//
-	// This allows us to avoid a whole ton of allocations
-	//
-	// We know, at least, items[0] exists due to len check at start
-	prealloc := make([]byte, items[0].Msgsize())
+	// So yeah, that was fun to figure out. RTFM helped :|
 
 	return db.Update(func(tx *bolt.Tx) error {
 
 		for _, item := range items {
-			// Reset slice to zero length but keep capacity to avoid allocations
-			prealloc = prealloc[:1]
 
 			// Serialize the item
-			serial, err := item.MarshalMsg(prealloc)
+			serial, err := item.MarshalMsg(nil)
 			if err != nil {
 				return fmt.Errorf("failed to Marshal Item, err=%s", err)
 			}
 
 			league := getLeagueBucket(item.League, tx)
+
+			val := league.Get(item.ID[:])
+			if val != nil {
+				fmt.Println("overwriting val...")
+			}
 
 			league.Put(item.ID[:], serial)
 		}
@@ -68,4 +70,22 @@ func AddItems(items []Item, db *bolt.DB) error {
 		return nil
 	})
 
+}
+
+// ItemStoreCount returns the number of items across all leagues
+func ItemStoreCount(db *bolt.DB) (int, error) {
+	var count int
+
+	return count, db.View(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(itemStoreBucket))
+		if b == nil {
+			return fmt.Errorf("%s bucket not found", itemStoreBucket)
+		}
+
+		stats := b.Stats()
+		count = stats.KeyN
+
+		return nil
+	})
 }
