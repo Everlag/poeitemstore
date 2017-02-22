@@ -38,6 +38,9 @@ type Item struct {
 	Name       StringHeapID // On StringHeap
 	TypeLine   StringHeapID // On StringHeap
 	Note       StringHeapID // On StringHeap
+	League     StringHeapID // On StringHeap
+	RootType   StringHeapID // On StringHeap
+	RootFlavor StringHeapID // On StringHeap
 	Corrupted  bool
 	Identified bool
 }
@@ -52,10 +55,16 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 	names := make([]string, len(items))
 	typeLines := make([]string, len(items))
 	notes := make([]string, len(items))
+	leagues := make([]string, len(items))
+	rootTypes := make([]string, len(items))
+	rootFlavors := make([]string, len(items))
 	for i, item := range items {
 		names[i] = item.Name
 		typeLines[i] = item.TypeLine
 		notes[i] = item.Name
+		leagues[i] = item.League
+		rootTypes[i] = item.RootType
+		rootFlavors[i] = item.RootFlavor
 	}
 
 	// Insert onto StringHeap while fetching their identifiers
@@ -74,6 +83,21 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 		return nil,
 			fmt.Errorf("failed to add notes to StringHeap, err=%s", err)
 	}
+	leagueIds, err := SetStrings(leagues, db)
+	if err != nil {
+		return nil,
+			fmt.Errorf("failed to add leagues to StringHeap, err=%s", err)
+	}
+	rootTypeIds, err := SetStrings(rootTypes, db)
+	if err != nil {
+		return nil,
+			fmt.Errorf("failed to add rootTypes to StringHeap, err=%s", err)
+	}
+	rootFlavorIds, err := SetStrings(rootFlavors, db)
+	if err != nil {
+		return nil,
+			fmt.Errorf("failed to add rootFlavor to StringHeap, err=%s", err)
+	}
 
 	// Build compact items from the ids
 	compact := make([]Item, len(items))
@@ -85,6 +109,9 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 			Name:       nameIds[i],
 			TypeLine:   typeLineIds[i],
 			Note:       noteIds[i],
+			League:     leagueIds[i],
+			RootType:   rootTypeIds[i],
+			RootFlavor: rootFlavorIds[i],
 			Identified: item.Identified,
 			Corrupted:  item.Corrupted,
 		}
