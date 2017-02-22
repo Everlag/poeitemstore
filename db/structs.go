@@ -1,5 +1,7 @@
 package db
 
+//go:generate msgp
+
 import (
 	"crypto/sha512"
 
@@ -8,6 +10,18 @@ import (
 	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
 )
+
+// StringHeapID maps to a stored string identifier.
+//
+// This creates a layer of indirection when rebuilding items but
+// saves on space for ids
+type StringHeapID uint64
+
+// StringHeapIDFromBytes generats the corresponding heap id
+// from the provided bytes
+func StringHeapIDFromBytes(bytes []byte) StringHeapID {
+	return StringHeapID(btoi(bytes))
+}
 
 // IDSize is the size in bytes a derived ID can be
 const IDSize = 12
