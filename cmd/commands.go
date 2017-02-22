@@ -106,8 +106,8 @@ var lookupPropertyCmd = &cobra.Command{
 
 var tryCompactyCmd = &cobra.Command{
 	Use:   "tryCompact",
-	Short: "attempt to compact all items in cached stash update",
-	Long:  "get the stash update from disk, deserialize it, and try compacting items, this will result in db writes",
+	Short: "attempt to compact all stashes in cached stash update",
+	Long:  "get the stash update from disk, deserialize it, and try compacting stashes, this will result in db writes",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		resp, err := stash.GetStored()
@@ -117,18 +117,13 @@ var tryCompactyCmd = &cobra.Command{
 		}
 
 		// Flatten the items
-		items := make([]stash.Item, 0)
-		for _, stash := range resp.Stashes {
-			items = append(items, stash.Items...)
-		}
-
-		compact, err := db.StashItemsToCompact(items, bdb)
+		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
 		if err != nil {
-			fmt.Printf("failed to convert fat items to compact, err=%s\n", err)
+			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
 			os.Exit(-1)
 		}
-		compactSize := unsafe.Sizeof(db.Item{})
-		fmt.Printf("compact size is %d bytes\n", int(compactSize)*len(compact))
+		compacItemtSize := unsafe.Sizeof(db.Item{})
+		fmt.Printf("compact done, item size is %d bytes\n", int(compacItemtSize)*len(cItems))
 	},
 }
 

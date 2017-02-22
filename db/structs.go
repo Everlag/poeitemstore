@@ -9,18 +9,6 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-// StringHeapID maps to a stored string identifier.
-//
-// This creates a layer of indirection when rebuilding items but
-// saves on space for ids
-type StringHeapID uint64
-
-// StringHeapIDFromBytes generats the corresponding heap id
-// from the provided bytes
-func StringHeapIDFromBytes(bytes []byte) StringHeapID {
-	return StringHeapID(btoi(bytes))
-}
-
 // IDSize is the size in bytes a derived ID can be
 const IDSize = 12
 
@@ -103,5 +91,37 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 	}
 
 	return compact, nil
+
+}
+
+// Stash represents a compact record of a stash.
+type Stash struct {
+	ID          ID     // Reference value for this Stash
+	AccountName string // Account-wide name, we need nothing else to PM
+}
+
+// StashStashToCompact converts fat Item records to their compact form
+// while also stripping items out in their compact form.
+func StashStashToCompact(stashes []stash.Stash,
+	db *bolt.DB) ([]Stash, []Item, error) {
+
+	// Compact stashes and flatten items
+	compact := make([]Stash, len(stashes))
+	flatItems := make([]stash.Item, 0)
+	for i, stash := range stashes {
+		compact[i] = Stash{
+			AccountName: stash.AccountName,
+			ID:          IDFromUID(stash.ID),
+		}
+
+		flatItems = append(flatItems, stash.Items...)
+	}
+
+	compactItems, err := StashItemsToCompact(flatItems, db)
+	if err != nil {
+		err = fmt.Errorf("failed to compact items, err=%s", err)
+	}
+
+	return compact, compactItems, nil
 
 }
