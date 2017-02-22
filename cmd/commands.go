@@ -127,12 +127,42 @@ var tryCompactyCmd = &cobra.Command{
 	},
 }
 
+var storeItemsCmd = &cobra.Command{
+	Use:   "storeItems",
+	Short: "attempt to store all items in cached stash update",
+	Long:  "get the stash update from disk, deserialize it, compact it, and write it to the db",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		resp, err := stash.GetStored()
+		if err != nil {
+			fmt.Printf("failed to read cached stash data, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		// Flatten the items
+		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		if err != nil {
+			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		err = db.AddItems(cItems, bdb)
+		if err != nil {
+			fmt.Printf("failed to store items, err=%s\n", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("items stored done, %d items added\n", len(cItems))
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(addNamesCmd)
 	rootCmd.AddCommand(lookupPropertyCmd)
 	rootCmd.AddCommand(tryCompactyCmd)
+	rootCmd.AddCommand(storeItemsCmd)
 }
 
 // HandleCommands runs commands after setting up
