@@ -78,6 +78,42 @@ func SetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 	})
 }
 
+// SetStringsCB fills in any missing string heap index values
+// and maps all indice string values to their corresponding StringHeapID
+//
+// This will call the gen function until it returns no further values.
+// The gen function returns the strings to insert and an appropriately sized
+// array to store the resulting StringHeapID
+//
+// This function's use case is to allow many, separate sets of strings
+// to be added while retaining their index positions.
+func SetStringsCB(gen func(index int) ([]string, []StringHeapID),
+	db *bolt.DB) error {
+
+	return db.Update(func(tx *bolt.Tx) error {
+
+		i := 0
+		for indices, ids := gen(i); indices != nil; indices, ids = gen(i) {
+			if len(indices) != len(ids) {
+				return fmt.Errorf("length of provided indices does not match StringHeapID store, %d!=%d",
+					len(indices), len(ids))
+			}
+
+			for i, index := range indices {
+				id, err := setString(index, tx)
+				if err != nil {
+					return err
+				}
+				ids[i] = id
+			}
+
+			i++
+		}
+
+		return nil
+	})
+}
+
 // GetStrings maps all indice string values to their corresponding StringHeapID
 func GetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 	ids := make([]StringHeapID, len(indices))
