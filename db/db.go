@@ -18,7 +18,7 @@ var bucketNames = [...]string{
 	stringHeapBucket, stringHeapInverseBucket,
 	leagueHeapBucket, leagueHeapInverseBucket,
 	updateSnapshotHistoryBuckets,
-	itemStoreBucket,
+	leagueNamespaceBucket,
 }
 
 // i64tob returns an 8-byte big endian representation of v.

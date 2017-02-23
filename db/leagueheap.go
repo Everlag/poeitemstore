@@ -9,6 +9,30 @@ import (
 const leagueHeapBucket string = "leagueHeap"
 const leagueHeapInverseBucket string = "leagueHeapInvert"
 
+const leagueNamespaceBucket string = "leagueNamespace"
+
+// getLeagueBucket returns the top-level bucket for a specific league
+//
+// league buckets are stored inside leagueNamespaceBucket as their LeagueHeapID
+func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
+	// Grab root Bucket
+	rootBucket := tx.Bucket([]byte(leagueNamespaceBucket))
+	if rootBucket == nil {
+		panic(fmt.Sprintf(" %s not found", leagueNamespaceBucket))
+	}
+
+	leagueBytes := LeagueHeapIDToBytes(league)
+	leagueBucket := rootBucket.Bucket(leagueBytes)
+	if leagueBucket == nil {
+		var err error
+		leagueBucket, err = rootBucket.CreateBucket(leagueBytes)
+		if err != nil {
+			panic(fmt.Sprintf("cannot create league bucket, err=%s", err))
+		}
+	}
+	return leagueBucket
+}
+
 // Set a league value in the heap and returns its corresponding LeagueHeapID
 //
 // A transaction is passed in to allow batch entry

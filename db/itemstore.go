@@ -12,23 +12,20 @@ const itemStoreBucket string = "itemStore"
 // to a specific league
 //
 // Will either panic or return a valid bucket.
-func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
-	// Grab root Bucket
-	rootBucket := tx.Bucket([]byte(itemStoreBucket))
-	if rootBucket == nil {
-		panic(fmt.Sprintf("root item store bucket not found %s, ", itemStoreBucket))
-	}
+func getLeagueItemBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
+	// Grab league bucket
+	leagueBucket := getLeagueBucket(league, tx)
 
-	leagueBytes := LeagueHeapIDToBytes(league)
-	leagueBucket := rootBucket.Bucket(leagueBytes)
-	if leagueBucket == nil {
+	itemStore := leagueBucket.Bucket([]byte(itemStoreBucket))
+	if itemStore == nil {
 		var err error
-		leagueBucket, err = rootBucket.CreateBucket(leagueBytes)
+		itemStore, err = leagueBucket.CreateBucket([]byte(itemStoreBucket))
 		if err != nil {
-			panic(fmt.Sprintf("cannot create league bucket, err=%s", err))
+			panic(fmt.Sprintf("cannot create %s, err=%s", itemStoreBucket, err))
 		}
 	}
-	return leagueBucket
+
+	return itemStore
 }
 
 // AddItems adds tbe given items to their correct paths in the database
@@ -60,7 +57,7 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 				return fmt.Errorf("failed to Marshal Item, err=%s", err)
 			}
 
-			league := getLeagueBucket(item.League, tx)
+			league := getLeagueItemBucket(item.League, tx)
 
 			val := league.Get(item.ID[:])
 			if val != nil {
@@ -79,15 +76,25 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 func ItemStoreCount(db *bolt.DB) (int, error) {
 	var count int
 
+	leagueStrings, err := ListLeagues(db)
+	if err != nil {
+		return 0, err
+	}
+	leagueIDs, err := GetLeagues(leagueStrings, db)
+	if err != nil {
+		return 0, err
+	}
+
 	return count, db.View(func(tx *bolt.Tx) error {
 
-		b := tx.Bucket([]byte(itemStoreBucket))
-		if b == nil {
-			return fmt.Errorf("%s bucket not found", itemStoreBucket)
+		for _, id := range leagueIDs {
+			b := getLeagueItemBucket(id, tx)
+			if b == nil {
+				return fmt.Errorf("%s bucket not found", itemStoreBucket)
+			}
+			stats := b.Stats()
+			count += stats.KeyN
 		}
-
-		stats := b.Stats()
-		count = stats.KeyN
 
 		return nil
 	})
