@@ -72,11 +72,6 @@ func AddItems(items []Item, db *bolt.DB) error {
 
 }
 
-// // GetItems returns a compact Item for each ID provided
-// func GetItems(ids []ID, db *bolt.DB) []Item  {
-
-// }
-
 // ItemStoreCount returns the number of items across all leagues
 func ItemStoreCount(db *bolt.DB) (int, error) {
 	var count int
