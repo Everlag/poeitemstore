@@ -144,6 +144,14 @@ type Item struct {
 	RootFlavor string `json:"-"`
 }
 
+// GetMods concats both ExplicitMods and ImplicitMods, returning the result
+func (item *Item) GetMods() []ItemMod {
+	mods := make([]ItemMod, 0)
+	mods = append(mods, item.ImplicitMods...)
+	mods = append(mods, item.ExplicitMods...)
+	return mods
+}
+
 // Stash represents a stash tab with items and associated metadata
 type Stash struct {
 	AccountName       string `json:"accountName"`
