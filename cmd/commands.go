@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -35,7 +34,7 @@ var fetchCmd = &cobra.Command{
 		err := stash.FetchAndSetStore()
 		if err != nil {
 			fmt.Printf("failed to fetch and update stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 	},
 }
@@ -48,7 +47,7 @@ var checkCmd = &cobra.Command{
 		resp, err := stash.GetStored()
 		if err != nil {
 			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 		fmt.Printf("read cached stash update, %d entries found\n", len(resp.Stashes))
 	},
@@ -62,19 +61,19 @@ var addNamesCmd = &cobra.Command{
 		resp, err := stash.GetStored()
 		if err != nil {
 			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		if err := db.AddPropertyNamesFromResponse(resp, bdb); err != nil {
 			fmt.Printf("failed to add property names, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		var count int
 		count, err = db.PropertyNameCount(bdb)
 		if err != nil {
 			fmt.Printf("failed to get property name count, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		fmt.Printf("added property names, %d properties exist\n", count)
@@ -89,7 +88,7 @@ var lookupPropertyCmd = &cobra.Command{
 
 		if len(args) < 1 {
 			fmt.Println("please provide property")
-			os.Exit(-1)
+			return
 		}
 		property := args[0]
 
@@ -97,7 +96,7 @@ var lookupPropertyCmd = &cobra.Command{
 
 		if err != nil {
 			fmt.Printf("%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		fmt.Printf("%s = %d\n", property, index)
@@ -113,14 +112,14 @@ var tryCompactyCmd = &cobra.Command{
 		resp, err := stash.GetStored()
 		if err != nil {
 			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		// Flatten the items
 		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
 		if err != nil {
 			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 		compacItemtSize := unsafe.Sizeof(db.Item{})
 		fmt.Printf("compact done, item size is %d bytes\n", int(compacItemtSize)*len(cItems))
@@ -136,27 +135,27 @@ var storeItemsCmd = &cobra.Command{
 		resp, err := stash.GetStored()
 		if err != nil {
 			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		// Flatten the items
 		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
 		if err != nil {
 			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		err = db.AddItems(cItems, bdb)
 		if err != nil {
 			fmt.Printf("failed to store items, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		var count int
 		count, err = db.ItemStoreCount(bdb)
 		if err != nil {
 			fmt.Printf("failed to get item count, err=%s\n", err)
-			os.Exit(-1)
+			return
 		}
 
 		representativeItem := db.Item{}
@@ -176,7 +175,7 @@ var listLeaguesCmd = &cobra.Command{
 		leagues, err := db.ListLeagues(bdb)
 		if err != nil {
 			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			os.Exit(-1)
+			return
 
 		}
 
@@ -200,7 +199,7 @@ func HandleCommands(db *bolt.DB) {
 	bdb = db
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		fmt.Printf("command failed, err=%s", err)
+		return
 	}
 }
