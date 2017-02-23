@@ -147,8 +147,34 @@ func Boot() (*bolt.DB, error) {
 		return nil, fmt.Errorf("failed to open %s as boltdb, err=%s", DBLocation, err)
 	}
 
+	// Ensure root level buckets exist
 	if err := setupBuckets(db); err != nil {
 		return nil, fmt.Errorf("failed to setup buckets, err=%s", err)
 	}
+
+	// Ensure league level buckets exist on each league
+	leagueStrings, err := ListLeagues(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list leagues, err=%s", err)
+	}
+	leagueIDs, err := GetLeagues(leagueStrings, db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert league strings to ids, err=%s", err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+
+		for _, id := range leagueIDs {
+			b := getLeagueItemBucket(id, tx)
+			if err = checkLeague(b, tx); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to checkLeagues, err=%s", err)
+	}
+
 	return db, nil
 }

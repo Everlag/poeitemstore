@@ -47,17 +47,22 @@ func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 
 // addLeagueSubBuckets adds buckets directly related to a league
 //
-// This is NOT idempotent; it will fail if called on a pre-existing league bucket
+// This is suger for checkLeague
+func addLeagueSubBuckets(leagueBucket *bolt.Bucket, tx *bolt.Tx) error {
+	return checkLeague(leagueBucket, tx)
+}
+
+// checkLeague ensures that bucekts directly related to a league are present
 //
-// tx is not used but it ensures that the Bucket is held under a valid transaction
+// This should be run before anything else is run in the database as this ensures
+// that a league contains registered buckets.
 //
 // This a an operation that allows league namespaced buckets
 // to be registered ahead of time and always exist whenever the league
 // bucket itself exists.
-func addLeagueSubBuckets(leagueBucket *bolt.Bucket, tx *bolt.Tx) error {
-
+func checkLeague(leagueBucket *bolt.Bucket, tx *bolt.Tx) error {
 	for _, b := range leagueSubBuckets {
-		_, err := leagueBucket.CreateBucket([]byte(b))
+		_, err := leagueBucket.CreateBucketIfNotExists([]byte(b))
 		if err != nil {
 			return fmt.Errorf("failed to add league bucket, bucket=%s, err=%s", b, err)
 		}
