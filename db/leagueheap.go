@@ -95,3 +95,29 @@ func GetLeagues(leagues []string, db *bolt.DB) ([]LeagueHeapID, error) {
 		return nil
 	})
 }
+
+// ListLeagues returns a list of all stored leagues
+func ListLeagues(db *bolt.DB) ([]string, error) {
+
+	leagues := make([]string, 0)
+
+	return leagues, db.View(func(tx *bolt.Tx) error {
+
+		// Fetch the heap bucket
+		var heap *bolt.Bucket
+		if heap = tx.Bucket([]byte(leagueHeapBucket)); heap == nil {
+			return fmt.Errorf("%s not found", leagueHeapBucket)
+		}
+
+		c := heap.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			if v != nil {
+				leagues = append(leagues, string(k))
+			}
+		}
+
+		return nil
+	})
+
+}

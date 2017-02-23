@@ -167,6 +167,23 @@ var storeItemsCmd = &cobra.Command{
 	},
 }
 
+var listLeaguesCmd = &cobra.Command{
+	Use:   "listLeagues",
+	Short: "attempt to fetch the names of stored leagues",
+	Long:  "open the db and find all leagues",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		leagues, err := db.ListLeagues(bdb)
+		if err != nil {
+			fmt.Printf("failed to read cached stash data, err=%s\n", err)
+			os.Exit(-1)
+
+		}
+
+		fmt.Printf("found leagues '%v'\n", leagues)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -174,6 +191,7 @@ func init() {
 	rootCmd.AddCommand(lookupPropertyCmd)
 	rootCmd.AddCommand(tryCompactyCmd)
 	rootCmd.AddCommand(storeItemsCmd)
+	rootCmd.AddCommand(listLeaguesCmd)
 }
 
 // HandleCommands runs commands after setting up
