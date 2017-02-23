@@ -64,6 +64,12 @@ func IDFromUID(uid string) ID {
 	return id
 }
 
+// ItemMod represents a compact explicit or implicit modifier on an item
+type ItemMod struct {
+	Mod    StringHeapID
+	Values []int
+}
+
 // Item represents a compact record of an item.
 type Item struct {
 	ID         ID
@@ -76,6 +82,7 @@ type Item struct {
 	League     LeagueHeapID // On LeagueHeap
 	Corrupted  bool
 	Identified bool
+	Mods       []ItemMod
 }
 
 // StashItemsToCompact converts fat Item records to their compact form
@@ -91,6 +98,7 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 	leagues := make([]string, len(items))
 	rootTypes := make([]string, len(items))
 	rootFlavors := make([]string, len(items))
+	mods := make([][]string, 0)
 	for i, item := range items {
 		names[i] = item.Name
 		typeLines[i] = item.TypeLine
@@ -98,38 +106,61 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 		leagues[i] = item.League
 		rootTypes[i] = item.RootType
 		rootFlavors[i] = item.RootFlavor
+
+		itemMods := make([]string, 0)
+		concatMods := item.GetMods()
+		for _, mod := range concatMods {
+			itemMods = append(itemMods, string(mod.Template))
+		}
+		mods = append(mods, itemMods)
 	}
 
-	// Insert onto StringHeap while fetching their identifiers
-	nameIds, err := SetStrings(names, db)
-	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add names to StringHeap, err=%s", err)
+	// Prepare to enter everything on the StringHeap
+	// This method results in a single disk write for everything
+	// rather than if we were to use separate SetStrings calls
+	var nameIds, typeLineIds, noteIds,
+		rootTypeIds, rootFlavorIds []StringHeapID
+	modIds := make([][]StringHeapID, len(mods))
+
+	gen := func(index int) ([]string, []StringHeapID) {
+
+		// Nasty, hardcoded switch... a better solution sometime :|
+		switch index {
+		case 0:
+			nameIds = make([]StringHeapID, len(names))
+			return names, nameIds
+		case 1:
+			typeLineIds = make([]StringHeapID, len(typeLines))
+			return typeLines, typeLineIds
+		case 2:
+			noteIds = make([]StringHeapID, len(notes))
+			return notes, noteIds
+		case 3:
+			rootFlavorIds = make([]StringHeapID, len(rootFlavors))
+			return rootFlavors, rootFlavorIds
+		case 4:
+			rootTypeIds = make([]StringHeapID, len(rootTypes))
+			return rootTypes, rootTypeIds
+		}
+
+		if index > 4 && (index-4) < len(mods) {
+			m := mods[index-4]
+			modIds[index-4] = make([]StringHeapID, len(m))
+			return m, modIds[index-4]
+		}
+
+		return nil, nil
 	}
-	typeLineIds, err := SetStrings(typeLines, db)
+
+	err := SetStringsCB(gen, db)
 	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add typeLines to StringHeap, err=%s", err)
+		return nil, fmt.Errorf("failed to set strings in StringHeap, err=%s", err)
 	}
-	noteIds, err := SetStrings(notes, db)
-	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add notes to StringHeap, err=%s", err)
-	}
+
 	leagueIds, err := SetLeagues(leagues, db)
 	if err != nil {
 		return nil,
 			fmt.Errorf("failed to add leagues to LeagueHeap, err=%s", err)
-	}
-	rootTypeIds, err := SetStrings(rootTypes, db)
-	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add rootTypes to StringHeap, err=%s", err)
-	}
-	rootFlavorIds, err := SetStrings(rootFlavors, db)
-	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add rootFlavor to StringHeap, err=%s", err)
 	}
 
 	// Build compact items from the ids
@@ -148,6 +179,20 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 			Identified: item.Identified,
 			Corrupted:  item.Corrupted,
 		}
+
+		// And now the worst part, the item mods :|
+		//
+		// This is very sensitive and makes for nasty indexing logic...
+		itemMods := make([]ItemMod, len(modIds[i]))
+		concatMods := item.GetMods()
+		for k, mod := range modIds[i] {
+			itemMods[k] = ItemMod{
+				Mod:    mod,
+				Values: concatMods[k].Values,
+			}
+		}
+		compact[i].Mods = itemMods
+
 	}
 
 	return compact, nil
