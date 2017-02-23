@@ -145,7 +145,7 @@ var storeItemsCmd = &cobra.Command{
 			return
 		}
 
-		err = db.AddItems(cItems, bdb)
+		overwritten, err := db.AddItems(cItems, bdb)
 		if err != nil {
 			fmt.Printf("failed to store items, err=%s\n", err)
 			return
@@ -161,8 +161,8 @@ var storeItemsCmd = &cobra.Command{
 		representativeItem := db.Item{}
 		serialItemSize := representativeItem.Msgsize()
 
-		fmt.Printf("items stored done, %d items added, %d items total, itemSize=%d bytes\n",
-			len(cItems), count, serialItemSize)
+		fmt.Printf("items stored done, %d items added, %d item overwritten, %d items total, itemSize=%d bytes\n",
+			len(cItems), overwritten, count, serialItemSize)
 	},
 }
 

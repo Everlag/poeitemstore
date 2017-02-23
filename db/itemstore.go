@@ -34,11 +34,11 @@ func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 // AddItems adds tbe given items to their correct paths in the database
 //
 // Provided items CAN differ in their league.
-func AddItems(items []Item, db *bolt.DB) error {
+func AddItems(items []Item, db *bolt.DB) (int, error) {
 
 	// Silently exit when no items present to add
 	if len(items) < 1 {
-		return nil
+		return 0, nil
 	}
 
 	// NOTE: we cannot preallocate the buffer for marshalling
@@ -47,7 +47,10 @@ func AddItems(items []Item, db *bolt.DB) error {
 	//
 	// So yeah, that was fun to figure out. RTFM helped :|
 
-	return db.Update(func(tx *bolt.Tx) error {
+	// Keep track of the number of items we overwrite in this process
+	overwritten := 0
+
+	return overwritten, db.Update(func(tx *bolt.Tx) error {
 
 		for _, item := range items {
 
@@ -61,7 +64,7 @@ func AddItems(items []Item, db *bolt.DB) error {
 
 			val := league.Get(item.ID[:])
 			if val != nil {
-				fmt.Println("overwriting val...")
+				overwritten++
 			}
 
 			league.Put(item.ID[:], serial)
