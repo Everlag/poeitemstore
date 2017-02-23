@@ -16,13 +16,13 @@ func getLeagueItemBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 	// Grab league bucket
 	leagueBucket := getLeagueBucket(league, tx)
 
+	// Grab the itemStore
+	//
+	// This can never fail, its a guarantee that the itemStoreBucket was registered
+	// and will always appear on a valid leagueBucket
 	itemStore := leagueBucket.Bucket([]byte(itemStoreBucket))
 	if itemStore == nil {
-		var err error
-		itemStore, err = leagueBucket.CreateBucket([]byte(itemStoreBucket))
-		if err != nil {
-			panic(fmt.Sprintf("cannot create %s, err=%s", itemStoreBucket, err))
-		}
+		panic(fmt.Sprintf("%s bucket not found when expected", itemStoreBucket))
 	}
 
 	return itemStore

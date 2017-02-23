@@ -53,13 +53,13 @@ func (z *ID) Msgsize() (s int) {
 func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
-	var zwht uint32
-	zwht, err = dc.ReadMapHeader()
+	var zajw uint32
+	zajw, err = dc.ReadMapHeader()
 	if err != nil {
 		return
 	}
-	for zwht > 0 {
-		zwht--
+	for zajw > 0 {
+		zajw--
 		field, err = dc.ReadMapKeyPtr()
 		if err != nil {
 			return
@@ -77,54 +77,54 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 		case "Name":
 			{
-				var zhct uint64
-				zhct, err = dc.ReadUint64()
-				z.Name = StringHeapID(zhct)
+				var zwht uint64
+				zwht, err = dc.ReadUint64()
+				z.Name = StringHeapID(zwht)
 			}
 			if err != nil {
 				return
 			}
 		case "TypeLine":
 			{
-				var zcua uint64
-				zcua, err = dc.ReadUint64()
-				z.TypeLine = StringHeapID(zcua)
+				var zhct uint64
+				zhct, err = dc.ReadUint64()
+				z.TypeLine = StringHeapID(zhct)
 			}
 			if err != nil {
 				return
 			}
 		case "Note":
 			{
-				var zxhx uint64
-				zxhx, err = dc.ReadUint64()
-				z.Note = StringHeapID(zxhx)
+				var zcua uint64
+				zcua, err = dc.ReadUint64()
+				z.Note = StringHeapID(zcua)
 			}
 			if err != nil {
 				return
 			}
 		case "RootType":
 			{
-				var zlqf uint64
-				zlqf, err = dc.ReadUint64()
-				z.RootType = StringHeapID(zlqf)
+				var zxhx uint64
+				zxhx, err = dc.ReadUint64()
+				z.RootType = StringHeapID(zxhx)
 			}
 			if err != nil {
 				return
 			}
 		case "RootFlavor":
 			{
-				var zdaf uint64
-				zdaf, err = dc.ReadUint64()
-				z.RootFlavor = StringHeapID(zdaf)
+				var zlqf uint64
+				zlqf, err = dc.ReadUint64()
+				z.RootFlavor = StringHeapID(zlqf)
 			}
 			if err != nil {
 				return
 			}
 		case "League":
 			{
-				var zpks uint16
-				zpks, err = dc.ReadUint16()
-				z.League = LeagueHeapID(zpks)
+				var zdaf uint16
+				zdaf, err = dc.ReadUint16()
+				z.League = LeagueHeapID(zdaf)
 			}
 			if err != nil {
 				return
@@ -140,61 +140,20 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Mods":
-			var zjfb uint32
-			zjfb, err = dc.ReadArrayHeader()
+			var zpks uint32
+			zpks, err = dc.ReadArrayHeader()
 			if err != nil {
 				return
 			}
-			if cap(z.Mods) >= int(zjfb) {
-				z.Mods = (z.Mods)[:zjfb]
+			if cap(z.Mods) >= int(zpks) {
+				z.Mods = (z.Mods)[:zpks]
 			} else {
-				z.Mods = make([]ItemMod, zjfb)
+				z.Mods = make([]ItemMod, zpks)
 			}
 			for zcmr := range z.Mods {
-				var zcxo uint32
-				zcxo, err = dc.ReadMapHeader()
+				err = z.Mods[zcmr].DecodeMsg(dc)
 				if err != nil {
 					return
-				}
-				for zcxo > 0 {
-					zcxo--
-					field, err = dc.ReadMapKeyPtr()
-					if err != nil {
-						return
-					}
-					switch msgp.UnsafeString(field) {
-					case "Mod":
-						{
-							var zeff uint64
-							zeff, err = dc.ReadUint64()
-							z.Mods[zcmr].Mod = StringHeapID(zeff)
-						}
-						if err != nil {
-							return
-						}
-					case "Values":
-						var zrsw uint32
-						zrsw, err = dc.ReadArrayHeader()
-						if err != nil {
-							return
-						}
-						if cap(z.Mods[zcmr].Values) >= int(zrsw) {
-							z.Mods[zcmr].Values = (z.Mods[zcmr].Values)[:zrsw]
-						} else {
-							z.Mods[zcmr].Values = make([]int, zrsw)
-						}
-						for zajw := range z.Mods[zcmr].Values {
-							z.Mods[zcmr].Values[zajw], err = dc.ReadInt()
-							if err != nil {
-								return
-							}
-						}
-					default:
-						err = dc.Skip()
-						if err != nil {
-							return
-						}
-					}
 				}
 			}
 		default:
@@ -310,30 +269,9 @@ func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for zcmr := range z.Mods {
-		// map header, size 2
-		// write "Mod"
-		err = en.Append(0x82, 0xa3, 0x4d, 0x6f, 0x64)
-		if err != nil {
-			return err
-		}
-		err = en.WriteUint64(uint64(z.Mods[zcmr].Mod))
+		err = z.Mods[zcmr].EncodeMsg(en)
 		if err != nil {
 			return
-		}
-		// write "Values"
-		err = en.Append(0xa6, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73)
-		if err != nil {
-			return err
-		}
-		err = en.WriteArrayHeader(uint32(len(z.Mods[zcmr].Values)))
-		if err != nil {
-			return
-		}
-		for zajw := range z.Mods[zcmr].Values {
-			err = en.WriteInt(z.Mods[zcmr].Values[zajw])
-			if err != nil {
-				return
-			}
 		}
 	}
 	return
@@ -377,15 +315,9 @@ func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0xa4, 0x4d, 0x6f, 0x64, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Mods)))
 	for zcmr := range z.Mods {
-		// map header, size 2
-		// string "Mod"
-		o = append(o, 0x82, 0xa3, 0x4d, 0x6f, 0x64)
-		o = msgp.AppendUint64(o, uint64(z.Mods[zcmr].Mod))
-		// string "Values"
-		o = append(o, 0xa6, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73)
-		o = msgp.AppendArrayHeader(o, uint32(len(z.Mods[zcmr].Values)))
-		for zajw := range z.Mods[zcmr].Values {
-			o = msgp.AppendInt(o, z.Mods[zcmr].Values[zajw])
+		o, err = z.Mods[zcmr].MarshalMsg(o)
+		if err != nil {
+			return
 		}
 	}
 	return
@@ -395,13 +327,13 @@ func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
-	var zxpk uint32
-	zxpk, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zjfb uint32
+	zjfb, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zxpk > 0 {
-		zxpk--
+	for zjfb > 0 {
+		zjfb--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
 			return
@@ -419,54 +351,54 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 		case "Name":
 			{
-				var zdnj uint64
-				zdnj, bts, err = msgp.ReadUint64Bytes(bts)
-				z.Name = StringHeapID(zdnj)
+				var zcxo uint64
+				zcxo, bts, err = msgp.ReadUint64Bytes(bts)
+				z.Name = StringHeapID(zcxo)
 			}
 			if err != nil {
 				return
 			}
 		case "TypeLine":
 			{
-				var zobc uint64
-				zobc, bts, err = msgp.ReadUint64Bytes(bts)
-				z.TypeLine = StringHeapID(zobc)
+				var zeff uint64
+				zeff, bts, err = msgp.ReadUint64Bytes(bts)
+				z.TypeLine = StringHeapID(zeff)
 			}
 			if err != nil {
 				return
 			}
 		case "Note":
 			{
-				var zsnv uint64
-				zsnv, bts, err = msgp.ReadUint64Bytes(bts)
-				z.Note = StringHeapID(zsnv)
+				var zrsw uint64
+				zrsw, bts, err = msgp.ReadUint64Bytes(bts)
+				z.Note = StringHeapID(zrsw)
 			}
 			if err != nil {
 				return
 			}
 		case "RootType":
 			{
-				var zkgt uint64
-				zkgt, bts, err = msgp.ReadUint64Bytes(bts)
-				z.RootType = StringHeapID(zkgt)
+				var zxpk uint64
+				zxpk, bts, err = msgp.ReadUint64Bytes(bts)
+				z.RootType = StringHeapID(zxpk)
 			}
 			if err != nil {
 				return
 			}
 		case "RootFlavor":
 			{
-				var zema uint64
-				zema, bts, err = msgp.ReadUint64Bytes(bts)
-				z.RootFlavor = StringHeapID(zema)
+				var zdnj uint64
+				zdnj, bts, err = msgp.ReadUint64Bytes(bts)
+				z.RootFlavor = StringHeapID(zdnj)
 			}
 			if err != nil {
 				return
 			}
 		case "League":
 			{
-				var zpez uint16
-				zpez, bts, err = msgp.ReadUint16Bytes(bts)
-				z.League = LeagueHeapID(zpez)
+				var zobc uint16
+				zobc, bts, err = msgp.ReadUint16Bytes(bts)
+				z.League = LeagueHeapID(zobc)
 			}
 			if err != nil {
 				return
@@ -482,61 +414,20 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Mods":
-			var zqke uint32
-			zqke, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zsnv uint32
+			zsnv, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				return
 			}
-			if cap(z.Mods) >= int(zqke) {
-				z.Mods = (z.Mods)[:zqke]
+			if cap(z.Mods) >= int(zsnv) {
+				z.Mods = (z.Mods)[:zsnv]
 			} else {
-				z.Mods = make([]ItemMod, zqke)
+				z.Mods = make([]ItemMod, zsnv)
 			}
 			for zcmr := range z.Mods {
-				var zqyh uint32
-				zqyh, bts, err = msgp.ReadMapHeaderBytes(bts)
+				bts, err = z.Mods[zcmr].UnmarshalMsg(bts)
 				if err != nil {
 					return
-				}
-				for zqyh > 0 {
-					zqyh--
-					field, bts, err = msgp.ReadMapKeyZC(bts)
-					if err != nil {
-						return
-					}
-					switch msgp.UnsafeString(field) {
-					case "Mod":
-						{
-							var zyzr uint64
-							zyzr, bts, err = msgp.ReadUint64Bytes(bts)
-							z.Mods[zcmr].Mod = StringHeapID(zyzr)
-						}
-						if err != nil {
-							return
-						}
-					case "Values":
-						var zywj uint32
-						zywj, bts, err = msgp.ReadArrayHeaderBytes(bts)
-						if err != nil {
-							return
-						}
-						if cap(z.Mods[zcmr].Values) >= int(zywj) {
-							z.Mods[zcmr].Values = (z.Mods[zcmr].Values)[:zywj]
-						} else {
-							z.Mods[zcmr].Values = make([]int, zywj)
-						}
-						for zajw := range z.Mods[zcmr].Values {
-							z.Mods[zcmr].Values[zajw], bts, err = msgp.ReadIntBytes(bts)
-							if err != nil {
-								return
-							}
-						}
-					default:
-						bts, err = msgp.Skip(bts)
-						if err != nil {
-							return
-						}
-					}
 				}
 			}
 		default:
@@ -554,7 +445,7 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z *Item) Msgsize() (s int) {
 	s = 1 + 3 + msgp.ArrayHeaderSize + (IDSize * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (IDSize * (msgp.ByteSize)) + 5 + msgp.Uint64Size + 9 + msgp.Uint64Size + 5 + msgp.Uint64Size + 9 + msgp.Uint64Size + 11 + msgp.Uint64Size + 7 + msgp.Uint16Size + 10 + msgp.BoolSize + 11 + msgp.BoolSize + 5 + msgp.ArrayHeaderSize
 	for zcmr := range z.Mods {
-		s += 1 + 4 + msgp.Uint64Size + 7 + msgp.ArrayHeaderSize + (len(z.Mods[zcmr].Values) * (msgp.IntSize))
+		s += z.Mods[zcmr].Msgsize()
 	}
 	return
 }
@@ -563,13 +454,13 @@ func (z *Item) Msgsize() (s int) {
 func (z *ItemMod) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
-	var zzpf uint32
-	zzpf, err = dc.ReadMapHeader()
+	var zema uint32
+	zema, err = dc.ReadMapHeader()
 	if err != nil {
 		return
 	}
-	for zzpf > 0 {
-		zzpf--
+	for zema > 0 {
+		zema--
 		field, err = dc.ReadMapKeyPtr()
 		if err != nil {
 			return
@@ -577,26 +468,26 @@ func (z *ItemMod) DecodeMsg(dc *msgp.Reader) (err error) {
 		switch msgp.UnsafeString(field) {
 		case "Mod":
 			{
-				var zrfe uint64
-				zrfe, err = dc.ReadUint64()
-				z.Mod = StringHeapID(zrfe)
+				var zpez uint64
+				zpez, err = dc.ReadUint64()
+				z.Mod = StringHeapID(zpez)
 			}
 			if err != nil {
 				return
 			}
 		case "Values":
-			var zgmo uint32
-			zgmo, err = dc.ReadArrayHeader()
+			var zqke uint32
+			zqke, err = dc.ReadArrayHeader()
 			if err != nil {
 				return
 			}
-			if cap(z.Values) >= int(zgmo) {
-				z.Values = (z.Values)[:zgmo]
+			if cap(z.Values) >= int(zqke) {
+				z.Values = (z.Values)[:zqke]
 			} else {
-				z.Values = make([]int, zgmo)
+				z.Values = make([]int, zqke)
 			}
-			for zjpj := range z.Values {
-				z.Values[zjpj], err = dc.ReadInt()
+			for zkgt := range z.Values {
+				z.Values[zkgt], err = dc.ReadInt()
 				if err != nil {
 					return
 				}
@@ -632,8 +523,8 @@ func (z *ItemMod) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	for zjpj := range z.Values {
-		err = en.WriteInt(z.Values[zjpj])
+	for zkgt := range z.Values {
+		err = en.WriteInt(z.Values[zkgt])
 		if err != nil {
 			return
 		}
@@ -651,8 +542,8 @@ func (z *ItemMod) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Values"
 	o = append(o, 0xa6, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Values)))
-	for zjpj := range z.Values {
-		o = msgp.AppendInt(o, z.Values[zjpj])
+	for zkgt := range z.Values {
+		o = msgp.AppendInt(o, z.Values[zkgt])
 	}
 	return
 }
@@ -661,13 +552,13 @@ func (z *ItemMod) MarshalMsg(b []byte) (o []byte, err error) {
 func (z *ItemMod) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
-	var ztaf uint32
-	ztaf, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zqyh uint32
+	zqyh, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for ztaf > 0 {
-		ztaf--
+	for zqyh > 0 {
+		zqyh--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
 			return
@@ -675,26 +566,26 @@ func (z *ItemMod) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		switch msgp.UnsafeString(field) {
 		case "Mod":
 			{
-				var zeth uint64
-				zeth, bts, err = msgp.ReadUint64Bytes(bts)
-				z.Mod = StringHeapID(zeth)
+				var zyzr uint64
+				zyzr, bts, err = msgp.ReadUint64Bytes(bts)
+				z.Mod = StringHeapID(zyzr)
 			}
 			if err != nil {
 				return
 			}
 		case "Values":
-			var zsbz uint32
-			zsbz, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zywj uint32
+			zywj, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				return
 			}
-			if cap(z.Values) >= int(zsbz) {
-				z.Values = (z.Values)[:zsbz]
+			if cap(z.Values) >= int(zywj) {
+				z.Values = (z.Values)[:zywj]
 			} else {
-				z.Values = make([]int, zsbz)
+				z.Values = make([]int, zywj)
 			}
-			for zjpj := range z.Values {
-				z.Values[zjpj], bts, err = msgp.ReadIntBytes(bts)
+			for zkgt := range z.Values {
+				z.Values[zkgt], bts, err = msgp.ReadIntBytes(bts)
 				if err != nil {
 					return
 				}
@@ -719,9 +610,9 @@ func (z *ItemMod) Msgsize() (s int) {
 // DecodeMsg implements msgp.Decodable
 func (z *LeagueHeapID) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zrjx uint16
-		zrjx, err = dc.ReadUint16()
-		(*z) = LeagueHeapID(zrjx)
+		var zjpj uint16
+		zjpj, err = dc.ReadUint16()
+		(*z) = LeagueHeapID(zjpj)
 	}
 	if err != nil {
 		return
@@ -748,9 +639,9 @@ func (z LeagueHeapID) MarshalMsg(b []byte) (o []byte, err error) {
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *LeagueHeapID) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zawn uint16
-		zawn, bts, err = msgp.ReadUint16Bytes(bts)
-		(*z) = LeagueHeapID(zawn)
+		var zzpf uint16
+		zzpf, bts, err = msgp.ReadUint16Bytes(bts)
+		(*z) = LeagueHeapID(zzpf)
 	}
 	if err != nil {
 		return
@@ -769,13 +660,13 @@ func (z LeagueHeapID) Msgsize() (s int) {
 func (z *Stash) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
-	var zrbe uint32
-	zrbe, err = dc.ReadMapHeader()
+	var zgmo uint32
+	zgmo, err = dc.ReadMapHeader()
 	if err != nil {
 		return
 	}
-	for zrbe > 0 {
-		zrbe--
+	for zgmo > 0 {
+		zgmo--
 		field, err = dc.ReadMapKeyPtr()
 		if err != nil {
 			return
@@ -842,13 +733,13 @@ func (z *Stash) MarshalMsg(b []byte) (o []byte, err error) {
 func (z *Stash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
-	var zmfd uint32
-	zmfd, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var ztaf uint32
+	ztaf, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zmfd > 0 {
-		zmfd--
+	for ztaf > 0 {
+		ztaf--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
 			return
@@ -884,9 +775,9 @@ func (z *Stash) Msgsize() (s int) {
 // DecodeMsg implements msgp.Decodable
 func (z *StringHeapID) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zzdc uint64
-		zzdc, err = dc.ReadUint64()
-		(*z) = StringHeapID(zzdc)
+		var zeth uint64
+		zeth, err = dc.ReadUint64()
+		(*z) = StringHeapID(zeth)
 	}
 	if err != nil {
 		return
@@ -913,9 +804,9 @@ func (z StringHeapID) MarshalMsg(b []byte) (o []byte, err error) {
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *StringHeapID) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zelx uint64
-		zelx, bts, err = msgp.ReadUint64Bytes(bts)
-		(*z) = StringHeapID(zelx)
+		var zsbz uint64
+		zsbz, bts, err = msgp.ReadUint64Bytes(bts)
+		(*z) = StringHeapID(zsbz)
 	}
 	if err != nil {
 		return

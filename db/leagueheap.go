@@ -11,6 +11,13 @@ const leagueHeapInverseBucket string = "leagueHeapInvert"
 
 const leagueNamespaceBucket string = "leagueNamespace"
 
+// All buckets directly under a league are located here.
+//
+// Any league will always contain these
+var leagueSubBuckets = []string{
+	itemStoreBucket,
+}
+
 // getLeagueBucket returns the top-level bucket for a specific league
 //
 // league buckets are stored inside leagueNamespaceBucket as their LeagueHeapID
@@ -24,13 +31,39 @@ func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 	leagueBytes := LeagueHeapIDToBytes(league)
 	leagueBucket := rootBucket.Bucket(leagueBytes)
 	if leagueBucket == nil {
+		// Add the league bucket itself
 		var err error
 		leagueBucket, err = rootBucket.CreateBucket(leagueBytes)
 		if err != nil {
 			panic(fmt.Sprintf("cannot create league bucket, err=%s", err))
 		}
+		// Add any additional sub-buckets
+		if err := addLeagueSubBuckets(leagueBucket, tx); err != nil {
+			panic(fmt.Sprintf("cannot create league sub buckets, err=%s", err))
+		}
 	}
 	return leagueBucket
+}
+
+// addLeagueSubBuckets adds buckets directly related to a league
+//
+// This is NOT idempotent; it will fail if called on a pre-existing league bucket
+//
+// tx is not used but it ensures that the Bucket is held under a valid transaction
+//
+// This a an operation that allows league namespaced buckets
+// to be registered ahead of time and always exist whenever the league
+// bucket itself exists.
+func addLeagueSubBuckets(leagueBucket *bolt.Bucket, tx *bolt.Tx) error {
+
+	for _, b := range leagueSubBuckets {
+		_, err := leagueBucket.CreateBucket([]byte(b))
+		if err != nil {
+			return fmt.Errorf("failed to add league bucket, bucket=%s, err=%s", b, err)
+		}
+	}
+
+	return nil
 }
 
 // Set a league value in the heap and returns its corresponding LeagueHeapID
