@@ -1,5 +1,7 @@
 package stash
 
+//go:generate easyjson $GOFILE
+
 import (
 	"encoding/json"
 	"fmt"
@@ -8,6 +10,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+
+	"github.com/mailru/easyjson"
 )
 
 // PropertyValue holds a string value alongside an
@@ -114,6 +118,7 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 }
 
 // Property represents a single item property
+//easyjson:json
 type Property struct {
 	Name        string          `json:"name"`
 	Values      []PropertyValue `json:"values"`
@@ -121,6 +126,7 @@ type Property struct {
 }
 
 // Item represents a single item found from the stash api
+//easyjson:json
 type Item struct {
 	Verified     bool       `json:"verified"`
 	Ilvl         int        `json:"ilvl"`
@@ -153,6 +159,7 @@ func (item *Item) GetMods() []ItemMod {
 }
 
 // Stash represents a stash tab with items and associated metadata
+//easyjson:json
 type Stash struct {
 	AccountName       string `json:"accountName"`
 	LastCharacterName string `json:"lastCharacterName"`
@@ -164,6 +171,7 @@ type Stash struct {
 }
 
 // Response represents expected structure of a stash api call
+//easyjson:json
 type Response struct {
 	NextChangeID string  `json:"next_change_id"`
 	Stashes      []Stash `json:"stashes"`
@@ -183,9 +191,9 @@ func GetStored() (*Response, error) {
 	}
 	defer f.Close()
 
-	decoder := json.NewDecoder(f)
 	var response Response
-	err = decoder.Decode(&response)
+	err = easyjson.UnmarshalFromReader(f, &response)
+	// err = decoder.Decode(&response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
 	}
@@ -217,9 +225,8 @@ func FetchAndSetStore() error {
 	}
 	defer resp.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
 	var response Response
-	err = decoder.Decode(&response)
+	err = easyjson.UnmarshalFromReader(resp.Body, &response)
 	if err != nil {
 		return fmt.Errorf("failed to decode stash tab response, err=%s", err)
 	}
