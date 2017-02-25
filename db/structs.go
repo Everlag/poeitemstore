@@ -28,6 +28,11 @@ func (id StringHeapID) ToBytes() []byte {
 	return i32tob(uint32(id))
 }
 
+// Inflate returns the string represented by the given StringHeapID
+func (id StringHeapID) Inflate(db *bolt.DB) string {
+	return InflateString(id, db)
+}
+
 // LeagueHeapID maps to a stored string identifier specific to league
 //
 // This is basically StringHeapID but specialised for leagues
@@ -48,6 +53,11 @@ func LeagueHeapIDFromBytes(bytes []byte) LeagueHeapID {
 // ToBytes returns the byte-wise represenation of a LeagueHeapID
 func (id LeagueHeapID) ToBytes() []byte {
 	return i16tob(uint16(id))
+}
+
+// Inflate returns the string represented by the given LeagueHeapID
+func (id LeagueHeapID) Inflate(db *bolt.DB) string {
+	return InflateLeague(id, db)
 }
 
 // IDSize is the size in bytes a derived ID can be
@@ -79,6 +89,16 @@ type ItemMod struct {
 	Values []int
 }
 
+// Inflate returns an inflated equivalent item modifier for human use
+func (mod ItemMod) Inflate(db *bolt.DB) stash.ItemMod {
+
+	return stash.ItemMod{
+		Template: []byte(mod.Mod.Inflate(db)),
+		Values:   mod.Values,
+	}
+
+}
+
 // Item represents a compact record of an item.
 //msgp:tuple Item
 type Item struct {
@@ -93,6 +113,33 @@ type Item struct {
 	Corrupted  bool
 	Identified bool
 	Mods       []ItemMod
+}
+
+// Inflate returns an inflated equivalent item fit for human use
+func (item Item) Inflate(db *bolt.DB) stash.Item {
+
+	// Initialize with the most trivial portions
+	fat := stash.Item{
+		Name:       item.Name.Inflate(db),
+		TypeLine:   item.TypeLine.Inflate(db),
+		Note:       item.Note.Inflate(db),
+		RootType:   item.RootType.Inflate(db),
+		RootFlavor: item.RootFlavor.Inflate(db),
+		League:     item.League.Inflate(db),
+		Corrupted:  item.Corrupted,
+		Identified: item.Identified,
+	}
+
+	// And the modifiers
+	fatMods := make([]stash.ItemMod, len(item.Mods))
+	for i, mod := range item.Mods {
+		fatMods[i] = mod.Inflate(db)
+	}
+	// Uhhhhh.... yeah okay, I don't really care about this.
+	// TODO: rethink choices
+	fat.ExplicitMods = fatMods
+
+	return fat
 }
 
 // StashItemsToCompact converts fat Item records to their compact form

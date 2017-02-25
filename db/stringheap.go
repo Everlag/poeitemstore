@@ -131,3 +131,28 @@ func GetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 		return nil
 	})
 }
+
+// InflateString returns the string represenation of the given StringHeapID
+//
+// If you are providing a valid StringHeapID, this should never fail.
+func InflateString(id StringHeapID, db *bolt.DB) string {
+
+	var result string
+
+	db.View(func(tx *bolt.Tx) error {
+
+		// Fetch the inverter bucket
+		var inverter *bolt.Bucket
+		if inverter = tx.Bucket([]byte(stringHeapInverseBucket)); inverter == nil {
+			panic(fmt.Sprintf("%s does not exist when assumed", stringHeapInverseBucket))
+		}
+
+		// Fetch the string from the inverter
+		resultBytes := inverter.Get(id.ToBytes())
+		result = string(resultBytes)
+
+		return nil
+	})
+
+	return result
+}

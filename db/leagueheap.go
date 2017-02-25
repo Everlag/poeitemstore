@@ -183,3 +183,28 @@ func ListLeagues(db *bolt.DB) ([]string, error) {
 	})
 
 }
+
+// InflateLeague returns the string represenation of the given LeagueHeapID
+//
+// If you are providing a valid LeagueHeapID, this should never fail.
+func InflateLeague(id LeagueHeapID, db *bolt.DB) string {
+
+	var result string
+
+	db.View(func(tx *bolt.Tx) error {
+
+		// Fetch the inverter bucket
+		var inverter *bolt.Bucket
+		if inverter = tx.Bucket([]byte(leagueHeapInverseBucket)); inverter == nil {
+			panic(fmt.Sprintf("%s does not exist when assumed", leagueHeapInverseBucket))
+		}
+
+		// Fetch the string from the inverter
+		resultBytes := inverter.Get(id.ToBytes())
+		result = string(resultBytes)
+
+		return nil
+	})
+
+	return result
+}

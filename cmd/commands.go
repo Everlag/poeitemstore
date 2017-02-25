@@ -147,6 +147,7 @@ var lookupItemCmd = &cobra.Command{
 		}
 		idString := args[0]
 
+		// Decode and validate identifier
 		idBytes, err := hex.DecodeString(idString)
 		if err != nil {
 			fmt.Printf("failed to decode id, err=%s\n", err)
@@ -159,12 +160,24 @@ var lookupItemCmd = &cobra.Command{
 		var id db.ID
 		copy(id[:], idBytes)
 
+		// Grab it
 		item, err := db.GetItemByIDGlobal(id, bdb)
 		if err != nil {
 			fmt.Printf("failed to find item, err=%s", err)
+			return
 		}
 
-		fmt.Println(item)
+		// Inflate it
+		inflated := item.Inflate(bdb)
+
+		// Serialize so we can read the entire damn thing
+		inflatedBytes, err := inflated.MarshalJSON()
+		if err != nil {
+			fmt.Printf("failed to marshal item item, err=%s", err)
+			return
+		}
+
+		fmt.Printf("got item:\n%s\n", string(inflatedBytes))
 	},
 }
 
