@@ -72,6 +72,56 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 
 }
 
+// GetItemByID returns the item represented by provided ID
+// in a specific league
+func GetItemByID(id ID, league LeagueHeapID, tx *bolt.Tx) (Item, error) {
+	var item Item
+
+	// Get the league bucket
+	leagueBucket := getLeagueItemBucket(league, tx)
+
+	// Grab the stored item
+	itemBytes := leagueBucket.Get(id[:])
+	if itemBytes == nil {
+		return item, fmt.Errorf("item not found")
+	}
+
+	// Unmarshal the item
+	_, err := item.UnmarshalMsg(itemBytes)
+	return item, err
+
+}
+
+// GetItemByIDGlobal attempts to resolve an item ID across
+// every available league.
+func GetItemByIDGlobal(id ID, db *bolt.DB) (Item, error) {
+	var item Item
+
+	leagueStrings, err := ListLeagues(db)
+	if err != nil {
+		return item, err
+	}
+	leagueIDs, err := GetLeagues(leagueStrings, db)
+	if err != nil {
+		return item, err
+	}
+
+	fmt.Printf("got league ids %v\n", leagueIDs)
+
+	return item, db.View(func(tx *bolt.Tx) error {
+
+		var err error
+		for _, league := range leagueIDs {
+			item, err = GetItemByID(id, league, tx)
+			if err == nil {
+				return nil
+			}
+		}
+
+		return err
+	})
+}
+
 // ItemStoreCount returns the number of items across all leagues
 func ItemStoreCount(db *bolt.DB) (int, error) {
 	var count int

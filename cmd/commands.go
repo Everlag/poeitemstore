@@ -7,6 +7,8 @@ import (
 
 	"unsafe"
 
+	"encoding/hex"
+
 	"github.com/Everlag/gothing/db"
 	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
@@ -133,12 +135,46 @@ var listLeaguesCmd = &cobra.Command{
 	},
 }
 
+var lookupItemCmd = &cobra.Command{
+	Use:   "lookup [\"itemid\"]",
+	Short: "lookup an item with a specific id",
+	Long:  "get the database and lookup an item with our short, hashed format. This searches every league",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Println("please provide id to lookup")
+			return
+		}
+		idString := args[0]
+
+		idBytes, err := hex.DecodeString(idString)
+		if err != nil {
+			fmt.Printf("failed to decode id, err=%s\n", err)
+			return
+		}
+		if len(idBytes) != db.IDSize {
+			fmt.Printf("id wrong decoded size; got %d, expected %d\n", db.IDSize, len(idBytes))
+			return
+		}
+		var id db.ID
+		copy(id[:], idBytes)
+
+		item, err := db.GetItemByIDGlobal(id, bdb)
+		if err != nil {
+			fmt.Printf("failed to find item, err=%s", err)
+		}
+
+		fmt.Println(item)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(tryCompactyCmd)
 	rootCmd.AddCommand(storeItemsCmd)
 	rootCmd.AddCommand(listLeaguesCmd)
+	rootCmd.AddCommand(lookupItemCmd)
 }
 
 // HandleCommands runs commands after setting up
