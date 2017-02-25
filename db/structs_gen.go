@@ -373,10 +373,10 @@ func (z *ItemMod) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.Values) >= int(zqke) {
 		z.Values = (z.Values)[:zqke]
 	} else {
-		z.Values = make([]int, zqke)
+		z.Values = make([]uint16, zqke)
 	}
 	for zkgt := range z.Values {
-		z.Values[zkgt], err = dc.ReadInt()
+		z.Values[zkgt], err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -400,7 +400,7 @@ func (z *ItemMod) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for zkgt := range z.Values {
-		err = en.WriteInt(z.Values[zkgt])
+		err = en.WriteUint16(z.Values[zkgt])
 		if err != nil {
 			return
 		}
@@ -416,7 +416,7 @@ func (z *ItemMod) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendUint32(o, uint32(z.Mod))
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Values)))
 	for zkgt := range z.Values {
-		o = msgp.AppendInt(o, z.Values[zkgt])
+		o = msgp.AppendUint16(o, z.Values[zkgt])
 	}
 	return
 }
@@ -448,10 +448,10 @@ func (z *ItemMod) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap(z.Values) >= int(zywj) {
 		z.Values = (z.Values)[:zywj]
 	} else {
-		z.Values = make([]int, zywj)
+		z.Values = make([]uint16, zywj)
 	}
 	for zkgt := range z.Values {
-		z.Values[zkgt], bts, err = msgp.ReadIntBytes(bts)
+		z.Values[zkgt], bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -462,7 +462,7 @@ func (z *ItemMod) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ItemMod) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.ArrayHeaderSize + (len(z.Values) * (msgp.IntSize))
+	s = 1 + msgp.Uint32Size + msgp.ArrayHeaderSize + (len(z.Values) * (msgp.Uint16Size))
 	return
 }
 

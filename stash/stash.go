@@ -70,7 +70,7 @@ var hashRegex = regexp.MustCompile("#")        // Filling templates
 // ItemMod is a modifier an item can have
 type ItemMod struct {
 	Template []byte
-	Values   []int
+	Values   []uint16
 }
 
 // MarshalJSON implements custom serialization for this type
@@ -84,7 +84,7 @@ func (m *ItemMod) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("failed to match template string slot with expected value")
 		}
 
-		insert := []byte(strconv.Itoa(value))
+		insert := []byte(strconv.FormatUint(uint64(value), 10))
 
 		portion := hashRegex.ReplaceAll(result[:loc[1]], insert)
 		result = append(portion, result[loc[1]:]...)
@@ -105,13 +105,13 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 	m.Template = numberRegex.ReplaceAll(b, []byte("#"))
 
 	// Convert the matches to numbers
-	m.Values = make([]int, len(matches))
-	var err error
+	m.Values = make([]uint16, len(matches))
 	for i, match := range matches {
-		m.Values[i], err = strconv.Atoi(string(match))
+		parsed, err := strconv.ParseUint(string(match), 10, 16)
 		if err != nil {
 			return fmt.Errorf("failed to convert match to int, err=%s", err)
 		}
+		m.Values[i] = uint16(parsed)
 	}
 
 	return nil

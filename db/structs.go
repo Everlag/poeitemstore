@@ -118,7 +118,7 @@ func IDFromUID(uid string) ID {
 //msgp:tuple ItemMod
 type ItemMod struct {
 	Mod    StringHeapID
-	Values []int
+	Values []uint16
 }
 
 // Inflate returns an inflated equivalent item modifier for human use
