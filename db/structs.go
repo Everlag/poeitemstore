@@ -159,7 +159,7 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 	for i, item := range items {
 		names[i] = item.Name
 		typeLines[i] = item.TypeLine
-		notes[i] = item.Name
+		notes[i] = item.Note
 		leagues[i] = item.League
 		rootTypes[i] = item.RootType
 		rootFlavors[i] = item.RootFlavor
