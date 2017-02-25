@@ -271,124 +271,7 @@ func (v *Response) UnmarshalJSON(data []byte) error {
 func (v *Response) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson6ff8f229DecodeGithubComEverlagGothingStash1(l, v)
 }
-func easyjson6ff8f229DecodeGithubComEverlagGothingStash2(in *jlexer.Lexer, out *Property) {
-	isTopLevel := in.IsStart()
-	if in.IsNull() {
-		if isTopLevel {
-			in.Consumed()
-		}
-		in.Skip()
-		return
-	}
-	in.Delim('{')
-	for !in.IsDelim('}') {
-		key := in.UnsafeString()
-		in.WantColon()
-		if in.IsNull() {
-			in.Skip()
-			in.WantComma()
-			continue
-		}
-		switch key {
-		case "name":
-			out.Name = string(in.String())
-		case "values":
-			if in.IsNull() {
-				in.Skip()
-				out.Values = nil
-			} else {
-				in.Delim('[')
-				if out.Values == nil {
-					if !in.IsDelim(']') {
-						out.Values = make([]PropertyValue, 0, 2)
-					} else {
-						out.Values = []PropertyValue{}
-					}
-				} else {
-					out.Values = (out.Values)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v7 PropertyValue
-					if data := in.Raw(); in.Ok() {
-						in.AddError((v7).UnmarshalJSON(data))
-					}
-					out.Values = append(out.Values, v7)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "displayMode":
-			out.DisplayMode = int(in.Int())
-		default:
-			in.SkipRecursive()
-		}
-		in.WantComma()
-	}
-	in.Delim('}')
-	if isTopLevel {
-		in.Consumed()
-	}
-}
-func easyjson6ff8f229EncodeGithubComEverlagGothingStash2(out *jwriter.Writer, in Property) {
-	out.RawByte('{')
-	first := true
-	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"name\":")
-	out.String(string(in.Name))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"values\":")
-	if in.Values == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v8, v9 := range in.Values {
-			if v8 > 0 {
-				out.RawByte(',')
-			}
-			out.Raw((v9).MarshalJSON())
-		}
-		out.RawByte(']')
-	}
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"displayMode\":")
-	out.Int(int(in.DisplayMode))
-	out.RawByte('}')
-}
-
-// MarshalJSON supports json.Marshaler interface
-func (v Property) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(&w, v)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// MarshalEasyJSON supports easyjson.Marshaler interface
-func (v Property) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(w, v)
-}
-
-// UnmarshalJSON supports json.Unmarshaler interface
-func (v *Property) UnmarshalJSON(data []byte) error {
-	r := jlexer.Lexer{Data: data}
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(&r, v)
-	return r.Error()
-}
-
-// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *Property) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(l, v)
-}
-func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *Item) {
+func easyjson6ff8f229DecodeGithubComEverlagGothingStash2(in *jlexer.Lexer, out *Item) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -409,10 +292,6 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *
 		switch key {
 		case "verified":
 			out.Verified = bool(in.Bool())
-		case "ilvl":
-			out.Ilvl = int(in.Int())
-		case "icon":
-			out.Icon = string(in.String())
 		case "league":
 			out.League = string(in.String())
 		case "id":
@@ -441,11 +320,11 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *
 					out.ImplicitMods = (out.ImplicitMods)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v10 ItemMod
+					var v7 ItemMod
 					if data := in.Raw(); in.Ok() {
-						in.AddError((v10).UnmarshalJSON(data))
+						in.AddError((v7).UnmarshalJSON(data))
 					}
-					out.ImplicitMods = append(out.ImplicitMods, v10)
+					out.ImplicitMods = append(out.ImplicitMods, v7)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -466,63 +345,17 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *
 					out.ExplicitMods = (out.ExplicitMods)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v11 ItemMod
+					var v8 ItemMod
 					if data := in.Raw(); in.Ok() {
-						in.AddError((v11).UnmarshalJSON(data))
+						in.AddError((v8).UnmarshalJSON(data))
 					}
-					out.ExplicitMods = append(out.ExplicitMods, v11)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "flavourText":
-			if in.IsNull() {
-				in.Skip()
-				out.FlavourText = nil
-			} else {
-				in.Delim('[')
-				if out.FlavourText == nil {
-					if !in.IsDelim(']') {
-						out.FlavourText = make([]string, 0, 4)
-					} else {
-						out.FlavourText = []string{}
-					}
-				} else {
-					out.FlavourText = (out.FlavourText)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v12 string
-					v12 = string(in.String())
-					out.FlavourText = append(out.FlavourText, v12)
+					out.ExplicitMods = append(out.ExplicitMods, v8)
 					in.WantComma()
 				}
 				in.Delim(']')
 			}
 		case "note":
 			out.Note = string(in.String())
-		case "properties":
-			if in.IsNull() {
-				in.Skip()
-				out.Properties = nil
-			} else {
-				in.Delim('[')
-				if out.Properties == nil {
-					if !in.IsDelim(']') {
-						out.Properties = make([]Property, 0, 1)
-					} else {
-						out.Properties = []Property{}
-					}
-				} else {
-					out.Properties = (out.Properties)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v13 Property
-					(v13).UnmarshalEasyJSON(in)
-					out.Properties = append(out.Properties, v13)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
 		case "utilityMods":
 			if in.IsNull() {
 				in.Skip()
@@ -539,9 +372,9 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *
 					out.UtilityMods = (out.UtilityMods)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v14 string
-					v14 = string(in.String())
-					out.UtilityMods = append(out.UtilityMods, v14)
+					var v9 string
+					v9 = string(in.String())
+					out.UtilityMods = append(out.UtilityMods, v9)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -558,7 +391,7 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash3(in *jlexer.Lexer, out *
 		in.Consumed()
 	}
 }
-func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in Item) {
+func easyjson6ff8f229EncodeGithubComEverlagGothingStash2(out *jwriter.Writer, in Item) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -568,18 +401,6 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 	first = false
 	out.RawString("\"verified\":")
 	out.Bool(bool(in.Verified))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"ilvl\":")
-	out.Int(int(in.Ilvl))
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"icon\":")
-	out.String(string(in.Icon))
 	if !first {
 		out.RawByte(',')
 	}
@@ -626,11 +447,11 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v15, v16 := range in.ImplicitMods {
-				if v15 > 0 {
+			for v10, v11 := range in.ImplicitMods {
+				if v10 > 0 {
 					out.RawByte(',')
 				}
-				out.Raw((v16).MarshalJSON())
+				out.Raw((v11).MarshalJSON())
 			}
 			out.RawByte(']')
 		}
@@ -645,30 +466,11 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v17, v18 := range in.ExplicitMods {
-				if v17 > 0 {
+			for v12, v13 := range in.ExplicitMods {
+				if v12 > 0 {
 					out.RawByte(',')
 				}
-				out.Raw((v18).MarshalJSON())
-			}
-			out.RawByte(']')
-		}
-	}
-	if len(in.FlavourText) != 0 {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"flavourText\":")
-		if in.FlavourText == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-			out.RawString("null")
-		} else {
-			out.RawByte('[')
-			for v19, v20 := range in.FlavourText {
-				if v19 > 0 {
-					out.RawByte(',')
-				}
-				out.String(string(v20))
+				out.Raw((v13).MarshalJSON())
 			}
 			out.RawByte(']')
 		}
@@ -681,25 +483,6 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 		out.RawString("\"note\":")
 		out.String(string(in.Note))
 	}
-	if len(in.Properties) != 0 {
-		if !first {
-			out.RawByte(',')
-		}
-		first = false
-		out.RawString("\"properties\":")
-		if in.Properties == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-			out.RawString("null")
-		} else {
-			out.RawByte('[')
-			for v21, v22 := range in.Properties {
-				if v21 > 0 {
-					out.RawByte(',')
-				}
-				(v22).MarshalEasyJSON(out)
-			}
-			out.RawByte(']')
-		}
-	}
 	if len(in.UtilityMods) != 0 {
 		if !first {
 			out.RawByte(',')
@@ -710,11 +493,11 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v23, v24 := range in.UtilityMods {
-				if v23 > 0 {
+			for v14, v15 := range in.UtilityMods {
+				if v14 > 0 {
 					out.RawByte(',')
 				}
-				out.String(string(v24))
+				out.String(string(v15))
 			}
 			out.RawByte(']')
 		}
@@ -733,23 +516,23 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash3(out *jwriter.Writer, in
 // MarshalJSON supports json.Marshaler interface
 func (v Item) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash3(&w, v)
+	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Item) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash3(w, v)
+	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Item) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash3(&r, v)
+	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Item) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash3(l, v)
+	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(l, v)
 }

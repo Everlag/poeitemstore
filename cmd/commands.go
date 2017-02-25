@@ -53,56 +53,6 @@ var checkCmd = &cobra.Command{
 	},
 }
 
-var addNamesCmd = &cobra.Command{
-	Use:   "addNames",
-	Short: "add all names in cached stash update",
-	Long:  "get the stash update from disk, deserialize it, and add all property names it contains to the database",
-	Run: func(cmd *cobra.Command, args []string) {
-		resp, err := stash.GetStored()
-		if err != nil {
-			fmt.Printf("failed to read cached stash data, err=%s\n", err)
-			return
-		}
-
-		if err := db.AddPropertyNamesFromResponse(resp, bdb); err != nil {
-			fmt.Printf("failed to add property names, err=%s\n", err)
-			return
-		}
-
-		var count int
-		count, err = db.PropertyNameCount(bdb)
-		if err != nil {
-			fmt.Printf("failed to get property name count, err=%s\n", err)
-			return
-		}
-
-		fmt.Printf("added property names, %d properties exist\n", count)
-	},
-}
-
-var lookupPropertyCmd = &cobra.Command{
-	Use:   "lookupProperty [\"property to lookup\"]",
-	Short: "lookup the integer identifier for a property",
-	Long:  "get the database and lookup a property",
-	Run: func(cmd *cobra.Command, args []string) {
-
-		if len(args) < 1 {
-			fmt.Println("please provide property")
-			return
-		}
-		property := args[0]
-
-		index, err := db.GetPropertyID(property, bdb)
-
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			return
-		}
-
-		fmt.Printf("%s = %d\n", property, index)
-	},
-}
-
 var tryCompactyCmd = &cobra.Command{
 	Use:   "tryCompact",
 	Short: "attempt to compact all stashes in cached stash update",
@@ -186,8 +136,6 @@ var listLeaguesCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
-	rootCmd.AddCommand(addNamesCmd)
-	rootCmd.AddCommand(lookupPropertyCmd)
 	rootCmd.AddCommand(tryCompactyCmd)
 	rootCmd.AddCommand(storeItemsCmd)
 	rootCmd.AddCommand(listLeaguesCmd)

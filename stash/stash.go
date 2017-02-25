@@ -117,33 +117,21 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Property represents a single item property
-//easyjson:json
-type Property struct {
-	Name        string          `json:"name"`
-	Values      []PropertyValue `json:"values"`
-	DisplayMode int             `json:"displayMode"`
-}
-
 // Item represents a single item found from the stash api
 //easyjson:json
 type Item struct {
-	Verified     bool       `json:"verified"`
-	Ilvl         int        `json:"ilvl"`
-	Icon         string     `json:"icon"`
-	League       string     `json:"league"`
-	ID           string     `json:"id"`
-	Name         string     `json:"name"`
-	TypeLine     string     `json:"typeLine"`
-	Identified   bool       `json:"identified"`
-	Corrupted    bool       `json:"corrupted"`
-	ImplicitMods []ItemMod  `json:"implicitMods,omitempty"`
-	ExplicitMods []ItemMod  `json:"explicitMods,omitempty"`
-	FlavourText  []string   `json:"flavourText,omitempty"`
-	Note         string     `json:"note,omitempty"`
-	Properties   []Property `json:"properties,omitempty"`
-	UtilityMods  []string   `json:"utilityMods,omitempty"`
-	DescrText    string     `json:"descrText,omitempty"`
+	Verified     bool      `json:"verified"`
+	League       string    `json:"league"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	TypeLine     string    `json:"typeLine"`
+	Identified   bool      `json:"identified"`
+	Corrupted    bool      `json:"corrupted"`
+	ImplicitMods []ItemMod `json:"implicitMods,omitempty"`
+	ExplicitMods []ItemMod `json:"explicitMods,omitempty"`
+	Note         string    `json:"note,omitempty"`
+	UtilityMods  []string  `json:"utilityMods,omitempty"`
+	DescrText    string    `json:"descrText,omitempty"`
 	// Additional data not present in response
 	StashID    string `json:"-"`
 	RootType   string `json:"-"`
