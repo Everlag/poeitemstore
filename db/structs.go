@@ -7,6 +7,8 @@ import (
 
 	"fmt"
 
+	"time"
+
 	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
 )
@@ -58,6 +60,36 @@ func (id LeagueHeapID) ToBytes() []byte {
 // Inflate returns the string represented by the given LeagueHeapID
 func (id LeagueHeapID) Inflate(db *bolt.DB) string {
 	return InflateLeague(id, db)
+}
+
+// TimestampSize is the number of bytes used by Timestamp
+//
+// This is sized to minimize waste while
+const TimestampSize = 4
+
+// Timestamp is a compact represenation of a unix timestamp
+type Timestamp [TimestampSize]byte
+
+// NewTimestamp returns a Timestamp at the current time
+func NewTimestamp() Timestamp {
+	now := time.Now().Unix()
+
+	nowBytes := i64tob(uint64(now))
+	nowTrunc := nowBytes[TimestampSize:]
+
+	var ts Timestamp
+	copy(ts[:], nowTrunc)
+	return ts
+}
+
+// ToTime converts a compact Timestamp to a time.Time
+func (ts Timestamp) ToTime() time.Time {
+	// Size the initial array with preceding zeroes
+	fatBytes := make([]byte, 8-TimestampSize)
+	// Jam the compact portion on
+	fatBytes = append(fatBytes, ts[:]...)
+	fatUint := btoi64(fatBytes)
+	return time.Unix(int64(fatUint), 0)
 }
 
 // IDSize is the size in bytes a derived ID can be
