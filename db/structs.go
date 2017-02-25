@@ -134,17 +134,18 @@ func (mod ItemMod) Inflate(db *bolt.DB) stash.ItemMod {
 // Item represents a compact record of an item.
 //msgp:tuple Item
 type Item struct {
-	ID         ID
-	Stash      ID           // Allows access to stash and corresponding metadata
-	Name       StringHeapID // On StringHeap
-	TypeLine   StringHeapID // On StringHeap
-	Note       StringHeapID // On StringHeap
-	RootType   StringHeapID // On StringHeap
-	RootFlavor StringHeapID // On StringHeap
-	League     LeagueHeapID // On LeagueHeap
-	Corrupted  bool
-	Identified bool
-	Mods       []ItemMod
+	ID             ID
+	Stash          ID           // Allows access to stash and corresponding metadata
+	Name           StringHeapID // On StringHeap
+	TypeLine       StringHeapID // On StringHeap
+	Note           StringHeapID // On StringHeap
+	RootType       StringHeapID // On StringHeap
+	RootFlavor     StringHeapID // On StringHeap
+	League         LeagueHeapID // On LeagueHeap
+	Corrupted      bool
+	Identified     bool
+	Mods           []ItemMod
+	UpdateSequence uint16 // The sequence number associated with this item
 }
 
 // Inflate returns an inflated equivalent item fit for human use
@@ -257,16 +258,17 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 
 	for i, item := range items {
 		compact[i] = Item{
-			ID:         IDFromUID(item.ID),
-			Stash:      IDFromUID(item.StashID),
-			Name:       nameIds[i],
-			TypeLine:   typeLineIds[i],
-			Note:       noteIds[i],
-			League:     leagueIds[i],
-			RootType:   rootTypeIds[i],
-			RootFlavor: rootFlavorIds[i],
-			Identified: item.Identified,
-			Corrupted:  item.Corrupted,
+			ID:             IDFromUID(item.ID),
+			Stash:          IDFromUID(item.StashID),
+			Name:           nameIds[i],
+			TypeLine:       typeLineIds[i],
+			Note:           noteIds[i],
+			League:         leagueIds[i],
+			RootType:       rootTypeIds[i],
+			RootFlavor:     rootFlavorIds[i],
+			Identified:     item.Identified,
+			Corrupted:      item.Corrupted,
+			UpdateSequence: uint16(i),
 		}
 
 		// And now the worst part, the item mods :|

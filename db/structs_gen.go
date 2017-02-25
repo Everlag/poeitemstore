@@ -56,8 +56,8 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zajw != 11 {
-		err = msgp.ArrayError{Wanted: 11, Got: zajw}
+	if zajw != 12 {
+		err = msgp.ArrayError{Wanted: 12, Got: zajw}
 		return
 	}
 	err = dc.ReadExactBytes(z.ID[:])
@@ -140,13 +140,17 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	z.UpdateSequence, err = dc.ReadUint16()
+	if err != nil {
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 11
-	err = en.Append(0x9b)
+	// array header, size 12
+	err = en.Append(0x9c)
 	if err != nil {
 		return err
 	}
@@ -200,14 +204,18 @@ func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	err = en.WriteUint16(z.UpdateSequence)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 11
-	o = append(o, 0x9b)
+	// array header, size 12
+	o = append(o, 0x9c)
 	o = msgp.AppendBytes(o, z.ID[:])
 	o = msgp.AppendBytes(o, z.Stash[:])
 	o = msgp.AppendUint32(o, uint32(z.Name))
@@ -225,6 +233,7 @@ func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
+	o = msgp.AppendUint16(o, z.UpdateSequence)
 	return
 }
 
@@ -235,8 +244,8 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zjfb != 11 {
-		err = msgp.ArrayError{Wanted: 11, Got: zjfb}
+	if zjfb != 12 {
+		err = msgp.ArrayError{Wanted: 12, Got: zjfb}
 		return
 	}
 	bts, err = msgp.ReadExactBytes(bts, z.ID[:])
@@ -319,6 +328,10 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	z.UpdateSequence, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
@@ -329,6 +342,7 @@ func (z *Item) Msgsize() (s int) {
 	for zcmr := range z.Mods {
 		s += z.Mods[zcmr].Msgsize()
 	}
+	s += msgp.Uint16Size
 	return
 }
 
