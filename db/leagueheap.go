@@ -15,7 +15,7 @@ const leagueNamespaceBucket string = "leagueNamespace"
 //
 // Any league will always contain these
 var leagueSubBuckets = []string{
-	itemStoreBucket,
+	itemStoreBucket, indiceBucket,
 }
 
 // getLeagueBucket returns the top-level bucket for a specific league
@@ -28,7 +28,7 @@ func getLeagueBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 		panic(fmt.Sprintf(" %s not found", leagueNamespaceBucket))
 	}
 
-	leagueBytes := LeagueHeapIDToBytes(league)
+	leagueBytes := league.ToBytes()
 	leagueBucket := rootBucket.Bucket(leagueBytes)
 	if leagueBucket == nil {
 		// Add the league bucket itself
@@ -92,14 +92,14 @@ func setLeague(index string, tx *bolt.Tx) (LeagueHeapID, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to get NextSequence in %s", leagueHeapBucket)
 	}
-	heap.Put([]byte(index), i16tob(uint16(seq)))
+	heap.Put([]byte(index), LeagueHeapIDFromSequence(seq).ToBytes())
 
 	// Also add it to the inverseBucket
 	var inverter *bolt.Bucket
 	if inverter = tx.Bucket([]byte(leagueHeapInverseBucket)); inverter == nil {
 		return 0, fmt.Errorf("%s not found", leagueHeapInverseBucket)
 	}
-	inverter.Put(i16tob(uint16(seq)), []byte(index))
+	inverter.Put(LeagueHeapIDFromSequence(seq).ToBytes(), []byte(index))
 
 	return LeagueHeapID(seq), nil
 

@@ -15,16 +15,17 @@ import (
 //
 // This creates a layer of indirection when rebuilding items but
 // saves on space for ids
-type StringHeapID uint64
+type StringHeapID uint32
 
 // StringHeapIDFromBytes generats the corresponding heap id
 // from the provided bytes
 func StringHeapIDFromBytes(bytes []byte) StringHeapID {
-	return StringHeapID(btoi64(bytes))
+	return StringHeapID(btoi32(bytes))
 }
 
-func StringHeapIDToBytes(id StringHeapID) []byte {
-	return i64tob(uint64(id))
+// ToBytes returns the byte-wise represenation of a StringHeapID
+func (id StringHeapID) ToBytes() []byte {
+	return i32tob(uint32(id))
 }
 
 // LeagueHeapID maps to a stored string identifier specific to league
@@ -32,14 +33,21 @@ func StringHeapIDToBytes(id StringHeapID) []byte {
 // This is basically StringHeapID but specialised for leagues
 type LeagueHeapID uint16
 
+// LeagueHeapIDFromSequence transforms a 64 bit bucket sequence number
+// into a LeagueHeapID
+func LeagueHeapIDFromSequence(seq uint64) LeagueHeapID {
+	return LeagueHeapID(int16(seq))
+}
+
 // LeagueHeapIDFromBytes generats the corresponding heap id
 // from the provided bytes
 func LeagueHeapIDFromBytes(bytes []byte) LeagueHeapID {
 	return LeagueHeapID(btoi16(bytes))
 }
 
-func LeagueHeapIDToBytes(id LeagueHeapID) []byte {
-	return i64tob(uint64(id))
+// ToBytes returns the byte-wise represenation of a LeagueHeapID
+func (id LeagueHeapID) ToBytes() []byte {
+	return i16tob(uint16(id))
 }
 
 // IDSize is the size in bytes a derived ID can be

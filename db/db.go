@@ -35,6 +35,20 @@ func btoi64(b []byte) uint64 {
 	return binary.BigEndian.Uint64(b)
 }
 
+// i32tob returns a 4-byte big endian representation of v.
+// Courtesy of boltdb dev logs
+func i32tob(v uint32) []byte {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, v)
+	return b
+}
+
+// btoi32 returns a PutUint32 from its 4-byte big endian representation.
+// Courtesy of boltdb dev logs
+func btoi32(b []byte) uint32 {
+	return binary.BigEndian.Uint32(b)
+}
+
 // i16tob returns an 2-byte big endian representation of v.
 // Courtesy of boltdb dev logs
 func i16tob(v uint16) []byte {
