@@ -65,12 +65,14 @@ func IDFromUID(uid string) ID {
 }
 
 // ItemMod represents a compact explicit or implicit modifier on an item
+//msgp:tuple ItemMod
 type ItemMod struct {
 	Mod    StringHeapID
 	Values []int
 }
 
 // Item represents a compact record of an item.
+//msgp:tuple Item
 type Item struct {
 	ID         ID
 	Stash      ID           // Allows access to stash and corresponding metadata
