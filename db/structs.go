@@ -51,12 +51,12 @@ func (id LeagueHeapID) ToBytes() []byte {
 }
 
 // IDSize is the size in bytes a derived ID can be
-const IDSize = 12
+const IDSize = 10
 
 // ID is an Identifier derived from per-item/stash tab UID
 //
-// A PID is 96 bits = 12 bytes,
-// this allows 2^48 items to be represented taking into birthdays
+// A PID is 80 bits = 10 bytes,
+// this allows 2^40 items to be represented taking into birthdays
 // and represents significant savings relative to the GGG api provided id
 type ID [IDSize]byte
 
