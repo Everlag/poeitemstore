@@ -179,7 +179,16 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 
 			modKey := encodeModIndexKey(mod, now, item.UpdateSequence)
 
-			itemModBucket.Put(modKey, item.ID[:])
+			// We need to make a copy of the item ID or bolt
+			// will get a buffer reused for all items.
+			//
+			// Without this, all index entries will point to the last
+			// item added.
+			idCopy := make([]byte, IDSize)
+			copy(idCopy, item.ID[:])
+
+			itemModBucket.Put(modKey, idCopy)
+			fmt.Printf("inserting index with id %x", item.ID[:])
 			added++
 		}
 	}
