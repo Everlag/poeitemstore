@@ -188,16 +188,23 @@ func GetStored() (*Response, error) {
 
 	// Add additioanl data to items
 	for _, stash := range response.Stashes {
-		for _, item := range stash.Items {
+		for i, item := range stash.Items {
 			item.StashID = stash.ID
-			flavor, root, ok := MatchBase(item.TypeLine)
-			if !ok {
-				item.RootType = item.TypeLine
-				item.RootFlavor = item.TypeLine
-			} else {
-				item.RootType = root
-				item.RootFlavor = flavor
+			// Handle cases where the item is identified purely by its typeline
+			if len(item.Name) == 0 {
+				item.Name = item.TypeLine
 			}
+
+			// Resolve the typeLine on an item to its flavor and root
+			flavor, root, ok := MatchTypeline(item.TypeLine)
+			if !ok {
+				return nil, fmt.Errorf("failed to discover flavor and root for Item, name=%s, id=%s",
+					item.Name, item.ID)
+			}
+			item.RootType = root
+			item.RootFlavor = flavor
+
+			stash.Items[i] = item
 		}
 	}
 
