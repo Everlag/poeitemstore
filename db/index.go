@@ -188,7 +188,6 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 			copy(idCopy, item.ID[:])
 
 			itemModBucket.Put(modKey, idCopy)
-			fmt.Printf("inserting index with id %x", item.ID[:])
 			added++
 		}
 	}
