@@ -31,12 +31,13 @@ func getLeagueIndexBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 // when considering the item containing it.
 //
 // This WILL write if a bucket is not found. Hence, readonly tx unsafe.
-func getItemModIndexBucket(mod ItemMod, item Item, tx *bolt.Tx) (*bolt.Bucket, error) {
+func getItemModIndexBucket(rootType, rootFlavor, mod StringHeapID,
+	league LeagueHeapID, tx *bolt.Tx) (*bolt.Bucket, error) {
 	// Keys towards the bucket we want to return, they may or may not exist
-	keys := []StringHeapID{item.RootType, item.RootFlavor, mod.Mod}
+	keys := []StringHeapID{rootType, rootFlavor, mod}
 
 	// Start at the index bucket
-	currentBucket := getLeagueIndexBucket(item.League, tx)
+	currentBucket := getLeagueIndexBucket(league, tx)
 
 	// Create all of the intervening keys
 	for i, key := range keys {
@@ -106,7 +107,9 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 
 		for _, mod := range item.Mods {
 			// Grab the bucket we can actually insert things into
-			itemModBucket, err := getItemModIndexBucket(mod, item, tx)
+
+			itemModBucket, err := getItemModIndexBucket(item.RootType, item.RootFlavor,
+				mod.Mod, item.League, tx)
 			if err != nil {
 				return 0, fmt.Errorf("failed to get item mod bucket")
 			}
