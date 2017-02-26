@@ -84,14 +84,6 @@ func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte
 	return append(index, suffix...)
 }
 
-// TODO
-// //
-// // Okay, so we have the itemIndexBucket, now we need to have a helper function
-// // that will find, and potentially create, the appropriate modifier bucket.
-// //
-// // From there, we'll take that modifer bucket, serialize the modifier to a key
-// // of something like key=[values, currentTimeTruncatedToDays(???)], value=itemID
-
 // IndexItems adds tbe given items to their correct indices
 // for efficient lookup. Returns number of index entries added.
 //
