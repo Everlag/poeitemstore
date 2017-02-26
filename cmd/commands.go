@@ -181,6 +181,31 @@ var lookupItemCmd = &cobra.Command{
 	},
 }
 
+var lookupStringCmd = &cobra.Command{
+	Use:   "string [\"StringHeapID\"]",
+	Short: "lookup a string on the heap with a specific id(hex encoded)",
+	Long:  "get the database and look for the string",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Println("please provide id to lookup")
+			return
+		}
+		idString := args[0]
+
+		// Decode and validate identifier
+		idBytes, err := hex.DecodeString(idString)
+		if err != nil {
+			fmt.Printf("failed to decode id, err=%s\n", err)
+			return
+		}
+		id := db.StringHeapIDFromBytes(idBytes)
+		fmt.Printf("id decoded as %d\n", id)
+
+		fmt.Printf("resolved: '%s'\n", id.Inflate(bdb))
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -188,6 +213,7 @@ func init() {
 	rootCmd.AddCommand(storeItemsCmd)
 	rootCmd.AddCommand(listLeaguesCmd)
 	rootCmd.AddCommand(lookupItemCmd)
+	rootCmd.AddCommand(lookupStringCmd)
 }
 
 // HandleCommands runs commands after setting up
