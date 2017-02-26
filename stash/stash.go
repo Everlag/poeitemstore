@@ -186,13 +186,17 @@ func GetStored() (*Response, error) {
 		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
 	}
 
-	// Add additioanl data to items
+	// Add additioanl data to items and clean them up
 	for _, stash := range response.Stashes {
 		for i, item := range stash.Items {
 			item.StashID = stash.ID
 			// Handle cases where the item is identified purely by its typeline
 			if len(item.Name) == 0 {
 				item.Name = item.TypeLine
+			}
+
+			if len(item.Note) == 0 {
+				item.Note = "unknown"
 			}
 
 			// Resolve the typeLine on an item to its flavor and root

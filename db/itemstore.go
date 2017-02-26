@@ -47,8 +47,12 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 	// Keep track of the number of items we overwrite in this process
 	overwritten := 0
 
+	// Acquire now
+	now := NewTimestamp()
+
 	return overwritten, db.Update(func(tx *bolt.Tx) error {
 
+		// Add all of the items to the itemStore
 		for _, item := range items {
 
 			// Serialize the item
@@ -65,6 +69,12 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 			}
 
 			league.Put(item.ID[:], serial)
+		}
+
+		// Index each of the items
+		_, err := IndexItems(items, now, tx)
+		if err != nil {
+			return fmt.Errorf("failed to add indices, err=%s", err)
 		}
 
 		return nil

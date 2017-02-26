@@ -14,6 +14,11 @@ const stringHeapInverseBucket string = "stringHeapInvert"
 // A transaction is passed in to allow batch entry
 func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 
+	// Sanity check index, we should never receive an empty value
+	if len(index) == 0 {
+		return 0, fmt.Errorf("zero length index passed to setString")
+	}
+
 	// Fetch the heap bucket
 	var heap *bolt.Bucket
 	if heap = tx.Bucket([]byte(stringHeapBucket)); heap == nil {
@@ -25,7 +30,10 @@ func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 		return StringHeapIDFromBytes(result), nil
 	}
 
+	fmt.Printf("adding string to heap, index=%s\n", index)
+
 	// If it doesn't, we need a sequence number
+	// fmt.Println("need sequence number for unseen string", index, len(index))
 	seq, err := heap.NextSequence()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get NextSequence in %s", stringHeapBucket)

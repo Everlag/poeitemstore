@@ -218,18 +218,23 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 		switch index {
 		case 0:
 			nameIds = make([]StringHeapID, len(names))
+			fmt.Println("names")
 			return names, nameIds
 		case 1:
 			typeLineIds = make([]StringHeapID, len(typeLines))
+			fmt.Println("typeLines")
 			return typeLines, typeLineIds
 		case 2:
 			noteIds = make([]StringHeapID, len(notes))
+			fmt.Println("notes")
 			return notes, noteIds
 		case 3:
 			rootFlavorIds = make([]StringHeapID, len(rootFlavors))
+			fmt.Println("rootFlavors")
 			return rootFlavors, rootFlavorIds
 		case 4:
 			rootTypeIds = make([]StringHeapID, len(rootTypes))
+			fmt.Println("rootTypes")
 			return rootTypes, rootTypeIds
 		}
 
