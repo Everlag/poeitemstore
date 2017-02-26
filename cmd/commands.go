@@ -206,6 +206,33 @@ var lookupStringCmd = &cobra.Command{
 	},
 }
 
+var lookupStringIDCmd = &cobra.Command{
+	Use:   "stringid [\"string\"]",
+	Short: "lookup the StringHeapID for a provided string",
+	Long:  "get the database and look for the StringHeapID",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Println("please provide id to lookup")
+			return
+		}
+		request := args[0]
+
+		ids, err := db.GetStrings([]string{request}, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch string, err=%s\n", err)
+			return
+		}
+		if len(ids) != 1 {
+			fmt.Printf("id fetch failed for some reason D:")
+			return
+		}
+
+		hexID := hex.EncodeToString(ids[0].ToBytes())
+		fmt.Printf("resolved: '%s'\n", hexID)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -214,6 +241,7 @@ func init() {
 	rootCmd.AddCommand(listLeaguesCmd)
 	rootCmd.AddCommand(lookupItemCmd)
 	rootCmd.AddCommand(lookupStringCmd)
+	rootCmd.AddCommand(lookupStringIDCmd)
 }
 
 // HandleCommands runs commands after setting up
