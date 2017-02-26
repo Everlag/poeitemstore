@@ -233,6 +233,54 @@ var lookupStringIDCmd = &cobra.Command{
 	},
 }
 
+var searchItemByModCmd = &cobra.Command{
+	Use:   "searchMinMod [\"TODO TODO TODO TODO\"]",
+	Short: "TODO",
+	Long:  "TODO",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Println("please provide id to lookup")
+			return
+		}
+		// Ignore the arguments for a minute...
+		// request := args[0]
+
+		// Lookup the root, flavor, and mod
+		// TODO not hardcode
+		strings := []string{
+			"Armour",
+			"Boots",
+			"\"#% increased Movement Speed\"",
+		}
+		ids, err := db.GetStrings(strings, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch string, err=%s\n", err)
+			return
+		}
+		// And we we need to fetch the league
+		// TODO not hardcode
+		leagueIDs, err := db.GetLeagues([]string{"Standard"}, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch league, err=%s\n", err)
+			return
+		}
+
+		// OH, this is ugly D:
+		resultIDs, err := db.LookupItems(ids[0], ids[1], ids[2],
+			leagueIDs[0], 20, 3, bdb)
+		if err != nil {
+			fmt.Printf("failed to search items, err=%s\n", err)
+			return
+		}
+
+		fmt.Println("result:")
+		for _, id := range resultIDs {
+			fmt.Printf("    %x\n", id)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -242,6 +290,7 @@ func init() {
 	rootCmd.AddCommand(lookupItemCmd)
 	rootCmd.AddCommand(lookupStringCmd)
 	rootCmd.AddCommand(lookupStringIDCmd)
+	rootCmd.AddCommand(searchItemByModCmd)
 }
 
 // HandleCommands runs commands after setting up
