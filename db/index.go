@@ -232,6 +232,12 @@ func LookupItems(rootType, rootFlavor, mod StringHeapID,
 		// The loop finishes at the beginning of the cursor when a nil key
 		// is returned.
 		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			// Ignore nested buckets
+			if k == nil {
+				continue
+			}
+
+			// Decode the key
 			values, err := decodeModIndexKey(k)
 			if err != nil {
 				return fmt.Errorf("failed to decode item mod index key, key=%v, err=%s",
@@ -262,6 +268,211 @@ func LookupItems(rootType, rootFlavor, mod StringHeapID,
 
 	// Truncate ids to however many we actually found
 	ids = ids[:lastIDFound]
+
+	return ids, err
+}
+
+// LookupItemsMultiModStrideLength determines how many items
+// is included in a stride of LookupItemsMultiMod.
+//
+// Longer strides mean fewer intersections but more potentially useless
+// item mods checked.
+const LookupItemsMultiModStrideLength = 32
+
+// lookupMultiModStride performs a single stride using the given cursors
+// while filling the given sets if the cursors have the currect value
+func lookupMultiModStride(minModValues []uint16,
+	sets []map[ID]struct{},
+	cursors []*bolt.Cursor, validCursors *int) error {
+
+	// TODO: invert the for loop, we should be iterating along the cursors
+	// LookupItemsMultiModStrideLength times rather than this inefficient shit
+	for index := 0; index < LookupItemsMultiModStrideLength; index++ {
+		for i, c := range cursors {
+			// Handle nil cursor indicating that mod
+			// has no more legitimate values
+			if c == nil {
+				continue
+			}
+
+			// Grab a pair
+			k, v := c.Prev()
+			// Ignore nested buckets
+			if k == nil {
+				continue
+			}
+			// Grab the value
+			values, err := decodeModIndexKey(k)
+			if err != nil {
+				return fmt.Errorf("failed to decode mod index key, key=%v, err=%s",
+					k, err)
+			}
+			if len(values) == 0 {
+				return fmt.Errorf("decoded item mod index key to no values, key=%v", k)
+			}
+
+			// Ensure the mod is the correct value
+			if values[0] >= minModValues[i] {
+				if len(v) != IDSize {
+					panic(fmt.Sprintf("malformed id value in index, incorrect length; id=%v", v))
+				}
+				// NOTE: the copy here is actually completely required
+				// due to the fact that boltdb makes no guarantee regarding what
+				// keys and value slices contain when outside a transaction.
+				var id ID
+				copy(id[:], v)
+				sets[i][id] = struct{}{}
+			} else {
+				// Remove from cursors we're interested in
+				cursors[i] = nil
+				*validCursors--
+			}
+		}
+	}
+	return nil
+}
+
+// LookupItemsMultiMod returns up to n item IDs where those items
+// are of the given type and flavor while also containing
+// the provided mods each with their minimum values
+func LookupItemsMultiMod(rootType, rootFlavor StringHeapID,
+	mods []StringHeapID, minModValues []uint16,
+	league LeagueHeapID,
+	n int, db *bolt.DB) ([]ID, error) {
+
+	// ids presized...
+	var ids []ID
+
+	// The basic strategy here
+	// is to find the buckets we need
+	// setup sets to handle placing items in
+	// iterate over STRIDE_LENGTH items and add them to the sets
+	// check if the last stride has found n intersecting items across all sets
+	// If yes, done
+	// If not, remove any mods whose keys are below their min values and do another stride
+
+	err := db.View(func(tx *bolt.Tx) error {
+
+		// Make a place to keep our cursors
+		//
+		// NOTE: a cursor can be nil to indicate it should not be queried
+		cursors := make([]*bolt.Cursor, len(mods))
+
+		// Keep track of how many cursors are valid,
+		// this will let us know when we've exhausted our data
+		validCursors := len(cursors)
+
+		// Collect our buckets for each mod and establish cursors
+		for i, mod := range mods {
+			itemModBucket, err := getItemModIndexBucketRO(rootType, rootFlavor, mod, league, tx)
+			if err != nil {
+				return fmt.Errorf("faield to get item mod index bucket, mod=%d err=%s",
+					mod, err)
+			}
+			cursors[i] = itemModBucket.Cursor()
+		}
+
+		// Create our item sets
+		sets := make([]map[ID]struct{}, len(mods))
+		for i := range sets {
+			sets[i] = make(map[ID]struct{})
+		}
+
+		// Set all of our cursors to be at their ends
+		for i, c := range cursors {
+			// Set to last
+			k, v := c.Last()
+			// Ignore nested buckets
+			if k == nil {
+				continue
+			}
+			// Grab the value
+			values, err := decodeModIndexKey(k)
+			if err != nil {
+				return fmt.Errorf("failed to decode mod index key, err=%s", err)
+			}
+			if len(values) == 0 {
+				return fmt.Errorf("decoded item mod index key to no values, key=%v", k)
+			}
+
+			// Ensure the mod is the correct value
+			if values[0] >= minModValues[i] {
+				if len(v) != IDSize {
+					panic(fmt.Sprintf("malformed id value in index, incorrect length; id=%v", v))
+				}
+				// NOTE: the copy here is actually completely required
+				// due to the fact that boltdb makes no guarantee regarding what
+				// keys and value slices contain when outside a transaction.
+				var id ID
+				copy(id[:], v)
+				sets[i][id] = struct{}{}
+			} else {
+				// Remove from cursors we're interested in
+				cursors[i] = nil
+				validCursors--
+			}
+		}
+
+		var foundIDs int
+	StrideAndIntersect:
+		for foundIDs < n || validCursors > 0 {
+			// Iterate for a stride
+			err := lookupMultiModStride(minModValues, sets, cursors, &validCursors)
+			if err != nil {
+				return fmt.Errorf("failed a stride, err=%s", err)
+			}
+
+			// Intersect the sets by taking one of them
+			// and seeing how many of its items appear in others
+			firstSet := sets[0]
+			for id := range firstSet {
+				// sharedCount always starts at one because it
+				//  is always shared with the firstSet
+				sharedCount := 1
+				for _, other := range sets[1:] {
+					_, ok := other[id]
+					if ok {
+						sharedCount++
+					}
+				}
+				if sharedCount == len(cursors) {
+					foundIDs++
+					if foundIDs >= n {
+						// Break out of our encompassing loop
+						break StrideAndIntersect
+					}
+				}
+			}
+		}
+
+		// Perform one more intersection to find our return value
+		ids = make([]ID, foundIDs)
+		lastIDFound := 0
+
+		// Intersect the sets by taking one of them
+		// and seeing how many of its items appear in others
+		firstSet := sets[0]
+		for id := range firstSet {
+			// sharedCount always starts at one because it
+			//  is always shared with the firstSet
+			sharedCount := 1
+			for _, other := range sets[1:] {
+				_, ok := other[id]
+				if ok {
+					sharedCount++
+				}
+			}
+			if sharedCount == len(cursors) {
+				ids[lastIDFound] = id
+				lastIDFound++
+				if lastIDFound >= n {
+					break
+				}
+			}
+		}
+
+		return nil
+	})
 
 	return ids, err
 }
