@@ -91,8 +91,16 @@ type baseInverter struct {
 func (inv baseInverter) typeLineToRootAndFlavor(typeLine string) (flavor,
 	root string, ok bool) {
 
-	// Try to resolve the typeLine to include a base which
-	// indicates a given flavor
+	// First we try a direct match
+	flavor, ok = inv.basesToFlavors[typeLine]
+	if ok {
+		// Resolve the root and return
+		root = inv.flavorsToRoots[flavor]
+		return
+	}
+
+	// If direct match failed, we need an exhaustive substring search
+	// This hurts performance but usually is fairly rare :|
 	for propBase, propFlavor := range inv.basesToFlavors {
 		if strings.Contains(typeLine, propBase) {
 			flavor = propFlavor
