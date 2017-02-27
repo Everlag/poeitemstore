@@ -9,6 +9,8 @@ import (
 
 	"encoding/hex"
 
+	"strconv"
+
 	"github.com/Everlag/gothing/db"
 	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
@@ -234,24 +236,40 @@ var lookupStringIDCmd = &cobra.Command{
 }
 
 var searchItemByModCmd = &cobra.Command{
-	Use:   "searchMinMod [\"TODO TODO TODO TODO\"]",
-	Short: "TODO",
-	Long:  "TODO",
+	Use:     "searchMinMod [\"maxMatches root flavor mod minValue\"]",
+	Short:   "Find a items matching criteria up to maxMatches",
+	Long:    "Search for an item with a given root and flavor item types with specific mod with minimum value",
+	Example: "searchMinMod 3 Armour Boots \"\\\"#% increased Movement Speed\\\"\" 10",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if len(args) < 1 {
-			fmt.Println("please provide id to lookup")
+		if len(args) < 4 {
+			fmt.Printf("invalid use, ex: %s\n", cmd.Example)
 			return
 		}
 		// Ignore the arguments for a minute...
-		// request := args[0]
+		maxMatchesString := args[0]
+		root := args[1]
+		flavor := args[2]
+		mod := args[3]
+		modMinValueString := args[4]
+
+		maxMatches, err := strconv.Atoi(maxMatchesString)
+		if err != nil {
+			fmt.Printf("cannot read maxMatches '%s' as a number", maxMatchesString)
+			return
+		}
+		minModValue, err := strconv.Atoi(modMinValueString)
+		if err != nil {
+			fmt.Printf("cannot read minValue '%s' as a number", modMinValueString)
+			return
+		}
 
 		// Lookup the root, flavor, and mod
 		// TODO not hardcode
 		strings := []string{
-			"Armour",
-			"Boots",
-			"\"#% increased Movement Speed\"",
+			root,
+			flavor,
+			mod,
 		}
 		ids, err := db.GetStrings(strings, bdb)
 		if err != nil {
@@ -268,7 +286,7 @@ var searchItemByModCmd = &cobra.Command{
 
 		// OH, this is ugly D:
 		resultIDs, err := db.LookupItems(ids[0], ids[1], ids[2],
-			leagueIDs[0], 20, 3, bdb)
+			leagueIDs[0], uint16(minModValue), maxMatches, bdb)
 		if err != nil {
 			fmt.Printf("failed to search items, err=%s\n", err)
 			return
