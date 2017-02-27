@@ -299,6 +299,64 @@ var searchItemByModCmd = &cobra.Command{
 	},
 }
 
+var searchItemMultiMod = &cobra.Command{
+	Use:     "searchMultiMod [\"TODO\"]",
+	Short:   "TODO",
+	Long:    "TODO",
+	Example: "TODO",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		root := "Armour"
+		flavor := "Boots"
+		mods := []string{
+			"\"#% increased Movement Speed\"",
+			"\"+# to maximum Life\"",
+			"\"#% increased Rarity of Items found\"",
+		}
+		modMinValues := []uint16{10, 20, 1}
+
+		maxMatches := 20
+
+		// Lookup the root, flavor, and mod
+		// TODO not hardcode
+		strings := []string{
+			root,
+			flavor,
+		}
+		ids, err := db.GetStrings(strings, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch string, err=%s\n", err)
+			return
+		}
+		modIds, err := db.GetStrings(mods, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch string for mods, err=%s\n", err)
+			return
+		}
+
+		// And we we need to fetch the league
+		// TODO not hardcode
+		leagueIDs, err := db.GetLeagues([]string{"Standard"}, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch league, err=%s\n", err)
+			return
+		}
+
+		// OH, this is ugly D:
+		resultIDs, err := db.LookupItemsMultiMod(ids[0], ids[1],
+			modIds, modMinValues, leagueIDs[0], maxMatches, bdb)
+		if err != nil {
+			fmt.Printf("failed to search items, err=%s\n", err)
+			return
+		}
+
+		fmt.Println("result:")
+		for _, id := range resultIDs {
+			fmt.Printf("    %x\n", id)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -309,6 +367,7 @@ func init() {
 	rootCmd.AddCommand(lookupStringCmd)
 	rootCmd.AddCommand(lookupStringIDCmd)
 	rootCmd.AddCommand(searchItemByModCmd)
+	rootCmd.AddCommand(searchItemMultiMod)
 }
 
 // HandleCommands runs commands after setting up
