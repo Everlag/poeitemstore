@@ -1,6 +1,6 @@
 package stash
 
-//go:generate go-bindata -pkg $GOPACKAGE -o assets.go assets/
+//go:generate go-bindata -pkg $GOPACKAGE -nometadata -o assets.go assets/
 
 import (
 	"encoding/json"
