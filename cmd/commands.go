@@ -313,7 +313,7 @@ var searchItemMultiMod = &cobra.Command{
 			"\"+# to maximum Life\"",
 			"\"#% increased Rarity of Items found\"",
 		}
-		modMinValues := []uint16{10, 20, 1}
+		modMinValues := []uint16{10, 20, 10}
 
 		maxMatches := 20
 

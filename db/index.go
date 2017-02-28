@@ -332,6 +332,50 @@ func lookupMultiModStride(minModValues []uint16,
 	return nil
 }
 
+// intersectItemIDMaps returns how many items in the given sets appear
+// across all them. The found items have their IDs put in result
+// up to its length.
+//
+// Pass a nil result to obtain just the count
+func intersectItemIDSets(sets []map[ID]struct{}, result []ID) int {
+
+	// Keep track of our maximum matches
+	//
+	// When nil result, we account for that in logic
+	n := len(result)
+
+	// And how many we have found so far
+	foundIDs := 0
+
+	// Intersect the sets by taking one of them
+	// and seeing how many of its items appear in others
+	firstSet := sets[0]
+	for id := range firstSet {
+		// sharedCount always starts at one because it
+		//  is always shared with the firstSet
+		sharedCount := 1
+		for _, other := range sets[1:] {
+			_, ok := other[id]
+			if ok {
+				sharedCount++
+			}
+		}
+		if sharedCount == len(sets) {
+			foundIDs++
+			// Add the item if we need to
+			if result != nil {
+				result[foundIDs-1] = id
+			}
+			// Exit early if we reach capacity
+			if result != nil && foundIDs >= n {
+				return foundIDs
+			}
+		}
+	}
+
+	return foundIDs
+}
+
 // LookupItemsMultiMod returns up to n item IDs where those items
 // are of the given type and flavor while also containing
 // the provided mods each with their minimum values
@@ -413,63 +457,25 @@ func LookupItemsMultiMod(rootType, rootFlavor StringHeapID,
 			}
 		}
 
+		// Perform our strides to search
 		var foundIDs int
-	StrideAndIntersect:
-		for foundIDs < n || validCursors > 0 {
+		for foundIDs < n && validCursors > 0 {
 			// Iterate for a stride
 			err := lookupMultiModStride(minModValues, sets, cursors, &validCursors)
 			if err != nil {
 				return fmt.Errorf("failed a stride, err=%s", err)
 			}
 
-			// Intersect the sets by taking one of them
-			// and seeing how many of its items appear in others
-			firstSet := sets[0]
-			for id := range firstSet {
-				// sharedCount always starts at one because it
-				//  is always shared with the firstSet
-				sharedCount := 1
-				for _, other := range sets[1:] {
-					_, ok := other[id]
-					if ok {
-						sharedCount++
-					}
-				}
-				if sharedCount == len(cursors) {
-					foundIDs++
-					if foundIDs >= n {
-						// Break out of our encompassing loop
-						break StrideAndIntersect
-					}
-				}
-			}
+			foundIDs = intersectItemIDSets(sets, nil)
 		}
 
+		// Cap result to desired length as required
+		if foundIDs > n {
+			foundIDs = n
+		}
 		// Perform one more intersection to find our return value
 		ids = make([]ID, foundIDs)
-		lastIDFound := 0
-
-		// Intersect the sets by taking one of them
-		// and seeing how many of its items appear in others
-		firstSet := sets[0]
-		for id := range firstSet {
-			// sharedCount always starts at one because it
-			//  is always shared with the firstSet
-			sharedCount := 1
-			for _, other := range sets[1:] {
-				_, ok := other[id]
-				if ok {
-					sharedCount++
-				}
-			}
-			if sharedCount == len(cursors) {
-				ids[lastIDFound] = id
-				lastIDFound++
-				if lastIDFound >= n {
-					break
-				}
-			}
-		}
+		intersectItemIDSets(sets, ids)
 
 		return nil
 	})
