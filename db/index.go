@@ -40,15 +40,12 @@ func getItemModIndexBucket(rootType, rootFlavor, mod StringHeapID,
 	currentBucket := getLeagueIndexBucket(league, tx)
 
 	// Create all of the intervening keys
-	for i, key := range keys {
+	for _, key := range keys {
 		keyBytes := key.ToBytes()
 		prevBucket := currentBucket.Bucket(keyBytes)
 		if prevBucket == nil {
 			// Create the bucket
 			var err error
-			if i == 0 {
-				// fmt.Println("creating non-existent bucket!", keyBytes)
-			}
 			prevBucket, err = currentBucket.CreateBucket(keyBytes)
 			if err != nil {
 				return nil,
@@ -287,18 +284,25 @@ func lookupMultiModStride(minModValues []uint16,
 
 	// TODO: invert the for loop, we should be iterating along the cursors
 	// LookupItemsMultiModStrideLength times rather than this inefficient shit
-	for index := 0; index < LookupItemsMultiModStrideLength; index++ {
-		for i, c := range cursors {
-			// Handle nil cursor indicating that mod
-			// has no more legitimate values
-			if c == nil {
-				continue
-			}
+	for i, c := range cursors {
+		// Handle nil cursor indicating that mod
+		// has no more legitimate values
+		if c == nil {
+			continue
+		}
+		for index := 0; index < LookupItemsMultiModStrideLength; index++ {
 
 			// Grab a pair
 			k, v := c.Prev()
-			// Ignore nested buckets
+			// Ignore nested buckets but also
+			// handle reaching the start of the bucket
 			if k == nil {
+				// Both nil means we're done
+				if v == nil {
+					cursors[i] = nil
+					*validCursors--
+					break
+				}
 				continue
 			}
 			// Grab the value
@@ -326,6 +330,7 @@ func lookupMultiModStride(minModValues []uint16,
 				// Remove from cursors we're interested in
 				cursors[i] = nil
 				*validCursors--
+				break
 			}
 		}
 	}
