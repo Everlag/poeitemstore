@@ -289,6 +289,11 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	return nil
 }
 
+// clearContext removes transaction dependent context from IndexQuery
+func (q *IndexQuery) clearContext() {
+	q.ctx = nil
+}
+
 // checkPair determines if a pair is acceptable for our query
 // and modifes the associated modIndex Cursor appropriately.
 func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
@@ -423,6 +428,8 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 		if err != nil {
 			return fmt.Errorf("failed to initialize query context")
 		}
+		// Always clear the context when we exit
+		defer q.clearContext()
 
 		// Set all of our cursors to be at their ends
 		for i, c := range q.ctx.cursors {
