@@ -285,8 +285,10 @@ var searchItemByModCmd = &cobra.Command{
 		}
 
 		// OH, this is ugly D:
-		resultIDs, err := db.LookupItems(ids[0], ids[1], ids[2],
-			leagueIDs[0], uint16(minModValue), maxMatches, bdb)
+		query := db.NewIndexQuery(ids[0], ids[1],
+			[]db.StringHeapID{ids[2]}, []uint16{uint16(minModValue)},
+			leagueIDs[0], maxMatches)
+		resultIDs, err := query.Run(bdb)
 		if err != nil {
 			fmt.Printf("failed to search items, err=%s\n", err)
 			return
@@ -343,8 +345,9 @@ var searchItemMultiMod = &cobra.Command{
 		}
 
 		// OH, this is ugly D:
-		resultIDs, err := db.LookupItemsMultiMod(ids[0], ids[1],
-			modIds, modMinValues, leagueIDs[0], maxMatches, bdb)
+		query := db.NewIndexQuery(ids[0], ids[1],
+			modIds, modMinValues, leagueIDs[0], maxMatches)
+		resultIDs, err := query.Run(bdb)
 		if err != nil {
 			fmt.Printf("failed to search items, err=%s\n", err)
 			return
