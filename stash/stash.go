@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"strings"
+
 	"github.com/mailru/easyjson"
 )
 
@@ -102,7 +104,7 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 	matches := numberRegex.FindAll(b, -1)
 
 	// Grab the template string representing the mod
-	m.Template = numberRegex.ReplaceAll(b, []byte("#"))
+	template := string(numberRegex.ReplaceAll(b, []byte("#")))
 
 	// Convert the matches to numbers
 	m.Values = make([]uint16, len(matches))
@@ -113,6 +115,20 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 		}
 		m.Values[i] = uint16(parsed)
 	}
+
+	// If enclosed by quotes, get rid of them.
+	//
+	// This theoretically makes boltdb searches faster but
+	// it just improves my quality of life...
+	if len(template) > 2 &&
+		strings.HasPrefix(template, "\"") &&
+		strings.HasSuffix(template, "\"") {
+
+		template = strings.TrimPrefix(template, "\"")
+		template = strings.TrimSuffix(template, "\"")
+	}
+
+	m.Template = []byte(template)
 
 	return nil
 }
