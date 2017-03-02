@@ -302,6 +302,12 @@ type indexQueryContext struct {
 	sets    []map[ID]struct{}
 }
 
+// Remove a given cursor from tracking on the context
+func (ctx *indexQueryContext) removeCursor(index int) {
+	ctx.cursors[index] = nil
+	ctx.validCursors--
+}
+
 // NewIndexQuery returns an IndexQuery with no context
 func NewIndexQuery(rootType, rootFlavor StringHeapID,
 	mods []StringHeapID, minModValues []uint16,
@@ -380,11 +386,50 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
 		q.ctx.sets[modIndex][id] = struct{}{}
 	} else {
 		// Remove from cursors we're interested in
-		q.ctx.cursors[modIndex] = nil
-		q.ctx.validCursors--
+		q.ctx.removeCursor(modIndex)
 	}
 
 	return valid, nil
+}
+
+// stide performs a single stride on the query
+func (q *IndexQuery) stride() error {
+
+	// Go over each cursor
+	for i, c := range q.ctx.cursors {
+		// Handle nil cursor indicating that mod
+		// has no more legitimate values
+		if c == nil {
+			continue
+		}
+
+		// Perform the actual per-cursor stride
+		for index := 0; index < LookupItemsMultiModStrideLength; index++ {
+
+			// Grab a pair
+			k, v := c.Prev()
+			// Ignore nested buckets but also
+			// handle reaching the start of the bucket
+			if k == nil {
+				// Both nil means we're done
+				if v == nil {
+					q.ctx.removeCursor(i)
+					break
+				}
+				continue
+			}
+			valid, err := q.checkPair(k, v, i)
+			if err != nil {
+				return fmt.Errorf("failed to check value pair, err=%s", err)
+			}
+
+			// If its not a valid pair, we're done iterating on this cursor
+			if !valid {
+				break
+			}
+		}
+	}
+	return nil
 }
 
 // Run initialises transaction context for a query and attempts
@@ -419,8 +464,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 		var foundIDs int
 		for foundIDs < q.maxDesired && q.ctx.validCursors > 0 {
 			// Iterate for a stride
-			err := lookupMultiModStride(q.minModValues,
-				q.ctx.sets, q.ctx.cursors, &q.ctx.validCursors)
+			err := q.stride()
 			if err != nil {
 				return fmt.Errorf("failed a stride, err=%s", err)
 			}
