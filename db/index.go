@@ -392,7 +392,8 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
 	return valid, nil
 }
 
-// stide performs a single stride on the query
+// stide performs a single stride on the query, filling sets on ctx
+// as appropriate and also invalidates cursors which are useless
 func (q *IndexQuery) stride() error {
 
 	// Go over each cursor
@@ -432,6 +433,52 @@ func (q *IndexQuery) stride() error {
 	return nil
 }
 
+// intersectItemIDMaps returns how many items in the given sets appear
+// across all them. The found items have their IDs put in result
+// up to its length.
+//
+// Pass a nil result to obtain just the count
+func (q *IndexQuery) intersectIDSets(result []ID) int {
+
+	// Keep track of our maximum matches
+	//
+	// When nil result, we account for that in logic
+	n := len(result)
+
+	// And how many we have found so far
+	foundIDs := 0
+
+	// Intersect the sets by taking one of them
+	// and seeing how many of its items appear in others
+	firstSet := q.ctx.sets[0]
+	for id := range firstSet {
+		// sharedCount always starts at one because it
+		//  is always shared with the firstSet
+		sharedCount := 1
+		for _, other := range q.ctx.sets[1:] {
+			_, ok := other[id]
+			if !ok {
+				// No point in continuing to look at unshared items
+				break
+			}
+			sharedCount++
+		}
+		if sharedCount == len(q.ctx.sets) {
+			foundIDs++
+			// Add the item if we need to
+			if result != nil {
+				result[foundIDs-1] = id
+			}
+			// Exit early if we reach capacity
+			if result != nil && foundIDs >= n {
+				return foundIDs
+			}
+		}
+	}
+
+	return foundIDs
+}
+
 // Run initialises transaction context for a query and attempts
 // to find desired items.
 func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
@@ -469,7 +516,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 				return fmt.Errorf("failed a stride, err=%s", err)
 			}
 
-			foundIDs = intersectItemIDSets(q.ctx.sets, nil)
+			foundIDs = q.intersectIDSets(nil)
 		}
 
 		// Cap result to desired length as required
@@ -478,7 +525,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 		}
 		// Perform one more intersection to find our return value
 		ids = make([]ID, foundIDs)
-		intersectItemIDSets(q.ctx.sets, ids)
+		q.intersectIDSets(ids)
 
 		return nil
 	})
