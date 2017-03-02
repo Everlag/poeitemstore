@@ -352,6 +352,41 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	return nil
 }
 
+// checkPair determines if a pair is acceptable for our query
+// and modifes the associated modIndex Cursor appropriately.
+func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
+	// Grab the value
+	values, err := decodeModIndexKey(k)
+	if err != nil {
+		return false,
+			fmt.Errorf("failed to decode mod index key, err=%s", err)
+	}
+	if len(values) == 0 {
+		return false,
+			fmt.Errorf("decoded item mod index key to no values, key=%v", k)
+	}
+
+	// Ensure the mod is the correct value
+	valid := values[0] >= q.minModValues[modIndex]
+	if valid {
+		if len(v) != IDSize {
+			panic(fmt.Sprintf("malformed id value in index, incorrect length; id=%v", v))
+		}
+		// NOTE: the copy here is actually completely required
+		// due to the fact that boltdb makes no guarantee regarding what
+		// keys and value slices contain when outside a transaction.
+		var id ID
+		copy(id[:], v)
+		q.ctx.sets[modIndex][id] = struct{}{}
+	} else {
+		// Remove from cursors we're interested in
+		q.ctx.cursors[modIndex] = nil
+		q.ctx.validCursors--
+	}
+
+	return valid, nil
+}
+
 // Run initialises transaction context for a query and attempts
 // to find desired items.
 func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
@@ -374,30 +409,9 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 			if k == nil {
 				continue
 			}
-			// Grab the value
-			values, err := decodeModIndexKey(k)
-			if err != nil {
-				return fmt.Errorf("failed to decode mod index key, err=%s", err)
-			}
-			if len(values) == 0 {
-				return fmt.Errorf("decoded item mod index key to no values, key=%v", k)
-			}
-
-			// Ensure the mod is the correct value
-			if values[0] >= q.minModValues[i] {
-				if len(v) != IDSize {
-					panic(fmt.Sprintf("malformed id value in index, incorrect length; id=%v", v))
-				}
-				// NOTE: the copy here is actually completely required
-				// due to the fact that boltdb makes no guarantee regarding what
-				// keys and value slices contain when outside a transaction.
-				var id ID
-				copy(id[:], v)
-				q.ctx.sets[i][id] = struct{}{}
-			} else {
-				// Remove from cursors we're interested in
-				q.ctx.cursors[i] = nil
-				q.ctx.validCursors--
+			// Check the pair, we only care about possible errors here
+			if _, err := q.checkPair(k, v, i); err != nil {
+				return fmt.Errorf("failed to check value in bucekt, err=%s", err)
 			}
 		}
 
