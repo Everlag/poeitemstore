@@ -302,43 +302,46 @@ var searchItemByModCmd = &cobra.Command{
 }
 
 var searchItemMultiMod = &cobra.Command{
-	Use:     "searchMultiMod [\"TODO\"]",
-	Short:   "TODO",
-	Long:    "TODO",
-	Example: "TODO",
+	Use:     "searchMultiMod [\"path to MultiModSearch json\"]",
+	Short:   "Find an item with types and mods",
+	Example: "searchMultiMod ./query.json",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		root := "Armour"
-		flavor := "Boots"
-		mods := []string{
-			"\"#% increased Movement Speed\"",
-			"\"+# to maximum Life\"",
-			"\"#% increased Rarity of Items found\"",
-		}
-		modMinValues := []uint16{10, 20, 10}
-
-		maxMatches := 20
-
-		// Lookup the root, flavor, and mod
-		// TODO not hardcode
-		strings := []string{
-			root,
-			flavor,
-		}
-		ids, err := db.GetStrings(strings, bdb)
-		if err != nil {
-			fmt.Printf("failed to fetch string, err=%s\n", err)
+		if len(args) < 1 {
+			fmt.Printf("invalid use, ex: %s\n", cmd.Example)
 			return
 		}
-		modIds, err := db.GetStrings(mods, bdb)
+		search, err := FetchMultiModSearch(args[0])
 		if err != nil {
-			fmt.Printf("failed to fetch string for mods, err=%s\n", err)
+			fmt.Printf("failed to get search, err=%s\n", err)
+			return
+		}
+
+		if len(search.Mods) == 0 {
+			fmt.Println("no mods provided")
+			return
+		}
+
+		if len(search.MinValues) != len(search.Mods) {
+			fmt.Println("each mod must have a minvalue")
+			return
+		}
+
+		// Lookup the root, flavor, and mod
+		strings := []string{search.RootType, search.RootFlavor}
+		ids, err := db.GetStrings(strings, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch rootType or RootFlavor id, err=%s\n", err)
+			return
+		}
+		modIds, err := db.GetStrings(search.Mods, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch mod id, err=%s\n", err)
 			return
 		}
 
 		// And we we need to fetch the league
-		// TODO not hardcode
-		leagueIDs, err := db.GetLeagues([]string{"Standard"}, bdb)
+		leagueIDs, err := db.GetLeagues([]string{search.League}, bdb)
 		if err != nil {
 			fmt.Printf("failed to fetch league, err=%s\n", err)
 			return
@@ -346,7 +349,7 @@ var searchItemMultiMod = &cobra.Command{
 
 		// OH, this is ugly D:
 		query := db.NewIndexQuery(ids[0], ids[1],
-			modIds, modMinValues, leagueIDs[0], maxMatches)
+			modIds, search.MinValues, leagueIDs[0], search.MaxDesired)
 		resultIDs, err := query.Run(bdb)
 		if err != nil {
 			fmt.Printf("failed to search items, err=%s\n", err)

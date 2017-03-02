@@ -1,0 +1,11 @@
+{
+    "maxDesired": 5,
+    "rootType": "Armour",
+    "rootFlavor": "Boots",
+    "league": "Standard",
+    "mods": [
+        "\"+# to maximum Energy Shield\"",
+        "\"#% increased Energy Shield\""
+    ],
+    "minvalues": [20, 20]
+}
