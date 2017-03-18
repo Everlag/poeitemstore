@@ -246,7 +246,7 @@ func FetchAndSetStore() error {
 		return fmt.Errorf("failed to decode stash tab response, err=%s", err)
 	}
 
-	serial, err := json.Marshal(response)
+	serial, err := response.MarshalJSON()
 	if err != nil {
 		return fmt.Errorf("failed to marshal stash tab response, err=%s", err)
 	}
