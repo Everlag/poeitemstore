@@ -92,24 +92,41 @@ func (ts Timestamp) ToTime() time.Time {
 	return time.Unix(int64(fatUint), 0)
 }
 
-// IDSize is the size in bytes a derived ID can be
-const IDSize = 10
+// GGGIDSize is the size in bytes a derived ID can be
+const GGGIDSize = 10
 
-// ID is an Identifier derived from per-item/stash tab UID
+// GGGID is an Identifier derived from per-item/stash tab UID
 //
 // A PID is 80 bits = 10 bytes,
 // this allows 2^40 items to be represented taking into birthdays
 // and represents significant savings relative to the GGG api provided id
-type ID [IDSize]byte
+type GGGID [GGGIDSize]byte
 
-// IDFromUID generates an ID for internal use from a UID string
-func IDFromUID(uid string) ID {
+// GGGIDFromUID generates an ID for internal use from a UID string
+func GGGIDFromUID(uid string) GGGID {
 
-	var id [IDSize]byte
+	var id [GGGIDSize]byte
 
 	hash := sha512.Sum512([]byte(uid))
 
 	copy(id[:], hash[:])
+
+	return id
+}
+
+// IDSize is the size in bytes an internal identifier can be
+const IDSize = 8
+
+// ID is an Identifier calculated internally
+//
+// This is effectively just a 64 bit uint
+type ID [IDSize]byte
+
+// IDFromSequence converts a sequence number into an identifier
+func IDFromSequence(seq uint64) ID {
+	var id [IDSize]byte
+	bin := i64tob(seq)
+	copy(id[:], bin)
 
 	return id
 }
@@ -135,7 +152,8 @@ func (mod ItemMod) Inflate(db *bolt.DB) stash.ItemMod {
 //msgp:tuple Item
 type Item struct {
 	ID             ID
-	Stash          ID           // Allows access to stash and corresponding metadata
+	GGGID          GGGID        // Allows mapping from simple ID to UUID
+	Stash          GGGID        // Allows access to stash and corresponding metadata
 	Name           StringHeapID // On StringHeap
 	TypeLine       StringHeapID // On StringHeap
 	Note           StringHeapID // On StringHeap
@@ -263,8 +281,9 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 
 	for i, item := range items {
 		compact[i] = Item{
-			ID:             IDFromUID(item.ID),
-			Stash:          IDFromUID(item.StashID),
+			ID:             ID{}, // Explicitly empty on entrance
+			GGGID:          GGGIDFromUID(item.ID),
+			Stash:          GGGIDFromUID(item.StashID),
 			Name:           nameIds[i],
 			TypeLine:       typeLineIds[i],
 			Note:           noteIds[i],
@@ -291,13 +310,20 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 
 	}
 
+	// Then add populate internal IDs, adding them as necessary
+	err = GetTranslations(compact, db)
+	if err != nil {
+		return nil,
+			fmt.Errorf("failed to add internal IDs to items, err=%s", err)
+	}
+
 	return compact, nil
 
 }
 
 // Stash represents a compact record of a stash.
 type Stash struct {
-	ID          ID     // Reference value for this Stash
+	ID          GGGID  // Reference value for this Stash
 	AccountName string // Account-wide name, we need nothing else to PM
 }
 
@@ -312,7 +338,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	for i, stash := range stashes {
 		compact[i] = Stash{
 			AccountName: stash.AccountName,
-			ID:          IDFromUID(stash.ID),
+			ID:          GGGIDFromUID(stash.ID),
 		}
 
 		flatItems = append(flatItems, stash.Items...)

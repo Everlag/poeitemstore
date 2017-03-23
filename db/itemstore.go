@@ -28,6 +28,19 @@ func getLeagueItemBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 	return itemStore
 }
 
+// getNextItemID returns the next identifier an item in the provided
+// league item heap bucke.
+func getNextItemID(league *bolt.Bucket) (ID, error) {
+
+	// If it doesn't, we need a sequence number
+	seq, err := league.NextSequence()
+	if err != nil {
+		return ID{}, fmt.Errorf("failed to get NextSequence in %s",
+			itemStoreBucket)
+	}
+	return IDFromSequence(seq), nil
+}
+
 // AddItems adds tbe given items to their correct paths in the database
 //
 // Provided items CAN differ in their league.
