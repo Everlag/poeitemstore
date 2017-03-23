@@ -363,6 +363,68 @@ var searchItemMultiMod = &cobra.Command{
 	},
 }
 
+var searchItemMultiModSlow = &cobra.Command{
+	Use:     "searchMultiModSlow [\"path to MultiModSearch json\"]",
+	Short:   "Find an item with types and mods. This is very slow but accurate",
+	Example: "searchMultiModSlow ./query.json",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		if len(args) < 1 {
+			fmt.Printf("invalid use, ex: %s\n", cmd.Example)
+			return
+		}
+		search, err := FetchMultiModSearch(args[0])
+		if err != nil {
+			fmt.Printf("failed to get search, err=%s\n", err)
+			return
+		}
+
+		if len(search.Mods) == 0 {
+			fmt.Println("no mods provided")
+			return
+		}
+
+		if len(search.MinValues) != len(search.Mods) {
+			fmt.Println("each mod must have a minvalue")
+			return
+		}
+
+		// Lookup the root, flavor, and mod
+		strings := []string{search.RootType, search.RootFlavor}
+		ids, err := db.GetStrings(strings, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch rootType or RootFlavor id, err=%s\n", err)
+			return
+		}
+		modIds, err := db.GetStrings(search.Mods, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch mod id, err=%s\n", err)
+			return
+		}
+
+		// And we we need to fetch the league
+		leagueIDs, err := db.GetLeagues([]string{search.League}, bdb)
+		if err != nil {
+			fmt.Printf("failed to fetch league, err=%s\n", err)
+			return
+		}
+
+		// OH, this is ugly D:
+		query := db.NewItemStoreQuery(ids[0], ids[1],
+			modIds, search.MinValues, leagueIDs[0], search.MaxDesired)
+		resultIDs, err := query.Run(bdb)
+		if err != nil {
+			fmt.Printf("failed to search items, err=%s\n", err)
+			return
+		}
+
+		fmt.Println("result:")
+		for _, id := range resultIDs {
+			fmt.Printf("    %x\n", id)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(fetchCmd)
 	rootCmd.AddCommand(checkCmd)
@@ -374,6 +436,7 @@ func init() {
 	rootCmd.AddCommand(lookupStringIDCmd)
 	rootCmd.AddCommand(searchItemByModCmd)
 	rootCmd.AddCommand(searchItemMultiMod)
+	rootCmd.AddCommand(searchItemMultiModSlow)
 }
 
 // HandleCommands runs commands after setting up
