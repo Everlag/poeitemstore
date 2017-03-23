@@ -92,7 +92,7 @@ func (m *ItemMod) MarshalJSON() ([]byte, error) {
 		result = append(portion, result[loc[1]:]...)
 	}
 
-	return json.Marshal(result)
+	return json.Marshal(string(result))
 }
 
 // UnmarshalJSON implements custom deserialization for this type
