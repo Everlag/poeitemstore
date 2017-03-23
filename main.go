@@ -12,8 +12,6 @@ import (
 
 func main() {
 
-	start := time.Now()
-
 	db, err := db.Boot()
 	if err != nil {
 		fmt.Printf("failed to open db, err=%s\n", err)
@@ -21,6 +19,7 @@ func main() {
 	}
 	defer db.Close()
 
+	start := time.Now()
 	cmd.HandleCommands(db)
 
 	end := time.Now()
