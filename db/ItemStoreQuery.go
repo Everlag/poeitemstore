@@ -26,12 +26,17 @@ type ItemStoreQuery struct {
 }
 
 // NewItemStoreQuery returns an ItemStoreQuery with no context
+//
+// If len(mods) != len(minModValues), we panic; so don't give us garbage
 func NewItemStoreQuery(rootType, rootFlavor StringHeapID,
 	mods []StringHeapID, minModValues []uint16,
 	league LeagueHeapID,
 	maxDesired int) ItemStoreQuery {
 
 	minModMap := make(map[StringHeapID]uint16)
+	for i, mod := range mods {
+		minModMap[mod] = minModValues[i]
+	}
 
 	return ItemStoreQuery{
 		rootType, rootFlavor,
@@ -43,10 +48,17 @@ func NewItemStoreQuery(rootType, rootFlavor StringHeapID,
 
 // checkItem determines if a given item satisfies the query
 func (q *ItemStoreQuery) checkItem(item Item) bool {
-	countPresent := 0
+
+	// Perform trivial check before expensive mod check
+	validRoot := q.rootType == item.RootType
+	validFlavor := q.rootFlavor == item.RootFlavor
+	if !(validRoot && validFlavor) {
+		return false
+	}
 
 	// Check each mod present on the provided item
 	// against the mods we need.
+	countPresent := 0
 	for _, mod := range item.Mods {
 		required, ok := q.minModMap[mod.Mod]
 		if !ok {
@@ -58,6 +70,17 @@ func (q *ItemStoreQuery) checkItem(item Item) bool {
 	}
 
 	return countPresent >= len(q.minModMap)
+}
+
+// checkPair determines if a pair is acceptable for our query
+func (q *ItemStoreQuery) checkPair(k, v []byte) (bool, error) {
+	var item Item
+	_, err := item.UnmarshalMsg(v)
+	if err != nil {
+		return false, fmt.Errorf("failed to UnmarshalMsg itemstore item, err=%s",
+			err)
+	}
+	return q.checkItem(item), nil
 }
 
 // Run initialises transaction context for a query and attempts
@@ -82,17 +105,18 @@ func (q *ItemStoreQuery) Run(db *bolt.DB) ([]ID, error) {
 		if k == nil {
 			return fmt.Errorf("failed to get last item in itemstore, empty bucket")
 		}
-		// Test the item we got back
-		var item Item
-		_, err := item.UnmarshalMsg(v)
-		if err != nil {
-			return fmt.Errorf("failed to UnmarshalMsg itemstore item, err=%s",
-				err)
-		}
-		if q.checkItem(item) {
-			var id ID
-			copy(id[:], k)
-			ids = append(ids, id)
+		// Test the item we got back as long as it isn't a bucket
+		if len(v) > 0 {
+			valid, err := q.checkPair(k, v)
+			if err != nil {
+				return fmt.Errorf("failed to check pair in itemstore, err=%s",
+					err)
+			}
+			if valid {
+				var id ID
+				copy(id[:], k)
+				ids = append(ids, id)
+			}
 		}
 
 		// Perform the actual search along the itemstore
@@ -104,21 +128,19 @@ func (q *ItemStoreQuery) Run(db *bolt.DB) ([]ID, error) {
 			k, v := c.Prev()
 			// Ignore nested buckets but also
 			// handle reaching the start of the bucket
-			if k == nil {
+			if len(v) == 0 {
 				// Both nil means we're done
-				if v == nil {
+				if k == nil {
 					break
 				}
 				continue
 			}
-			// Test the item we got back
-			var item Item
-			_, err := item.UnmarshalMsg(v)
+			valid, err := q.checkPair(k, v)
 			if err != nil {
-				return fmt.Errorf("failed to UnmarshalMsg itemstore item, err=%s",
+				return fmt.Errorf("failed to check pair in itemstore, err=%s",
 					err)
 			}
-			if q.checkItem(item) {
+			if valid {
 				var id ID
 				copy(id[:], k)
 				ids = append(ids, id)
