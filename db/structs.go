@@ -324,9 +324,10 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 // Stash represents a compact record of a stash.
 //msgp:tuple Stash
 type Stash struct {
-	ID          GGGID   // Reference value for this Stash
-	AccountName string  // Account-wide name, we need nothing else to PM
-	Items       []GGGID // GGGIDs for all items stored in that Stash
+	ID          GGGID        // Reference value for this Stash
+	AccountName string       // Account-wide name, we need nothing else to PM
+	Items       []GGGID      // GGGIDs for all items stored in that Stash
+	League      LeagueHeapID // LeagueHeapID as stashes are single-league
 }
 
 // StashStashToCompact converts fat Item records to their compact form
@@ -335,9 +336,17 @@ func StashStashToCompact(stashes []stash.Stash,
 	db *bolt.DB) ([]Stash, []Item, error) {
 
 	// Compact stashes and flatten items
-	compact := make([]Stash, len(stashes))
+	compact := make([]Stash, len(stashes))[:0] // Sliced to zero to allow append
 	flatItems := make([]stash.Item, 0)
-	for i, stash := range stashes {
+	// Also, keep track of per-stash leagues
+	leagues := make([]string, len(stashes))[:0] // Sliced to zero to allow append
+	for _, stash := range stashes {
+		// We skip empty stashes as we will be unable to assign
+		// then with a LeagueHeapID
+		if len(stash.Items) == 0 {
+			continue
+		}
+
 		compactStash := Stash{
 			AccountName: stash.AccountName,
 			ID:          GGGIDFromUID(stash.ID),
@@ -350,9 +359,22 @@ func StashStashToCompact(stashes []stash.Stash,
 		}
 		compactStash.Items = ids
 
-		compact[i] = compactStash
+		compact = append(compact, compactStash)
+
+		// Note the league for this Stash
+		leagues = append(leagues, stash.Items[0].League)
 
 		flatItems = append(flatItems, stash.Items...)
+	}
+
+	// Fetch and decorate the ids to the compact stashes
+	leagueIDs, err := SetLeagues(leagues, db)
+	if err != nil {
+		err = fmt.Errorf("failed to add LeagueHeapIDs to stashes, err=%s", err)
+		return nil, nil, err
+	}
+	for i, id := range leagueIDs {
+		compact[i].League = id
 	}
 
 	compactItems, err := StashItemsToCompact(flatItems, db)

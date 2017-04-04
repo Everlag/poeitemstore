@@ -576,8 +576,8 @@ func (z *Stash) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zrjx != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zrjx}
+	if zrjx != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zrjx}
 		return
 	}
 	err = dc.ReadExactBytes(z.ID[:])
@@ -604,13 +604,21 @@ func (z *Stash) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	{
+		var zwel uint16
+		zwel, err = dc.ReadUint16()
+		z.League = LeagueHeapID(zwel)
+	}
+	if err != nil {
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Stash) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return err
 	}
@@ -632,32 +640,37 @@ func (z *Stash) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	err = en.WriteUint16(uint16(z.League))
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Stash) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendBytes(o, z.ID[:])
 	o = msgp.AppendString(o, z.AccountName)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Items)))
 	for zeth := range z.Items {
 		o = msgp.AppendBytes(o, z.Items[zeth][:])
 	}
+	o = msgp.AppendUint16(o, uint16(z.League))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Stash) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zwel uint32
-	zwel, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zrbe uint32
+	zrbe, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if zwel != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zwel}
+	if zrbe != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zrbe}
 		return
 	}
 	bts, err = msgp.ReadExactBytes(bts, z.ID[:])
@@ -668,15 +681,15 @@ func (z *Stash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	var zrbe uint32
-	zrbe, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zmfd uint32
+	zmfd, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if cap(z.Items) >= int(zrbe) {
-		z.Items = (z.Items)[:zrbe]
+	if cap(z.Items) >= int(zmfd) {
+		z.Items = (z.Items)[:zmfd]
 	} else {
-		z.Items = make([]GGGID, zrbe)
+		z.Items = make([]GGGID, zmfd)
 	}
 	for zeth := range z.Items {
 		bts, err = msgp.ReadExactBytes(bts, z.Items[zeth][:])
@@ -684,22 +697,30 @@ func (z *Stash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	{
+		var zzdc uint16
+		zzdc, bts, err = msgp.ReadUint16Bytes(bts)
+		z.League = LeagueHeapID(zzdc)
+	}
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Stash) Msgsize() (s int) {
-	s = 1 + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.StringPrefixSize + len(z.AccountName) + msgp.ArrayHeaderSize + (len(z.Items) * (GGGIDSize * (msgp.ByteSize)))
+	s = 1 + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.StringPrefixSize + len(z.AccountName) + msgp.ArrayHeaderSize + (len(z.Items) * (GGGIDSize * (msgp.ByteSize))) + msgp.Uint16Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *StringHeapID) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zmfd uint32
-		zmfd, err = dc.ReadUint32()
-		(*z) = StringHeapID(zmfd)
+		var zelx uint32
+		zelx, err = dc.ReadUint32()
+		(*z) = StringHeapID(zelx)
 	}
 	if err != nil {
 		return
@@ -726,9 +747,9 @@ func (z StringHeapID) MarshalMsg(b []byte) (o []byte, err error) {
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *StringHeapID) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zzdc uint32
-		zzdc, bts, err = msgp.ReadUint32Bytes(bts)
-		(*z) = StringHeapID(zzdc)
+		var zbal uint32
+		zbal, bts, err = msgp.ReadUint32Bytes(bts)
+		(*z) = StringHeapID(zbal)
 	}
 	if err != nil {
 		return
