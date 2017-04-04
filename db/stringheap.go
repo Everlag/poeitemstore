@@ -30,8 +30,6 @@ func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 		return StringHeapIDFromBytes(result), nil
 	}
 
-	fmt.Printf("adding string to heap, index=%s\n", index)
-
 	// If it doesn't, we need a sequence number
 	// fmt.Println("need sequence number for unseen string", index, len(index))
 	seq, err := heap.NextSequence()
