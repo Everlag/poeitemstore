@@ -322,9 +322,11 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 }
 
 // Stash represents a compact record of a stash.
+//msgp:tuple Stash
 type Stash struct {
-	ID          GGGID  // Reference value for this Stash
-	AccountName string // Account-wide name, we need nothing else to PM
+	ID          GGGID   // Reference value for this Stash
+	AccountName string  // Account-wide name, we need nothing else to PM
+	Items       []GGGID // GGGIDs for all items stored in that Stash
 }
 
 // StashStashToCompact converts fat Item records to their compact form
@@ -336,10 +338,19 @@ func StashStashToCompact(stashes []stash.Stash,
 	compact := make([]Stash, len(stashes))
 	flatItems := make([]stash.Item, 0)
 	for i, stash := range stashes {
-		compact[i] = Stash{
+		compactStash := Stash{
 			AccountName: stash.AccountName,
 			ID:          GGGIDFromUID(stash.ID),
 		}
+
+		// Populate GGGIDs in this Stash
+		ids := make([]GGGID, len(stash.Items))
+		for i, item := range stash.Items {
+			ids[i] = GGGIDFromUID(item.ID)
+		}
+		compactStash.Items = ids
+
+		compact[i] = compactStash
 
 		flatItems = append(flatItems, stash.Items...)
 	}
