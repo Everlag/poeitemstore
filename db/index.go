@@ -192,3 +192,48 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 	return added, nil
 
 }
+
+// DeindexItems removes tbe given items from their correct indices
+//
+// If an index entry cannot be removed, we return an error. This ensures
+// all existing index entries must be alive
+func DeindexItems(items []Item, times []Timestamp,
+	tx *bolt.Tx) error {
+
+	// Sanity check passed in transaction, better to do this than panic.
+	if !tx.Writable() {
+		return fmt.Errorf("cannot IndexItems on readonly transaction")
+	}
+
+	// Silently exit when no items present to add
+	if len(items) < 1 {
+		return nil
+	}
+
+	for i, item := range items {
+
+		for _, mod := range item.Mods {
+			// Grab the bucket we can actually insert things into
+			itemModBucket, err := getItemModIndexBucket(item.RootType, item.RootFlavor,
+				mod.Mod, item.League, tx)
+			if err != nil {
+				return fmt.Errorf("failed to get item mod bucket")
+			}
+
+			modKey := encodeModIndexKey(mod, times[i], item.UpdateSequence)
+
+			// We need to make a copy of the item ID or bolt
+			// will get a buffer reused for all items.
+			//
+			// Without this, all index entries will point to the last
+			// item added.
+			idCopy := make([]byte, IDSize)
+			copy(idCopy, item.ID[:])
+
+			itemModBucket.Delete(modKey)
+		}
+	}
+
+	return nil
+
+}
