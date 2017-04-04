@@ -333,6 +333,42 @@ type Stash struct {
 	League      LeagueHeapID // LeagueHeapID as stashes are single-league
 }
 
+// Diff takes an older version of a Stash and determines which items,
+// in terms of GGGID, need to be added and which need to be removed.
+func (s Stash) Diff(old Stash) (add, remove []GGGID) {
+	// Keep track of which items existed previously
+	existing := make(map[GGGID]struct{})
+	for _, id := range old.Items {
+		existing[id] = struct{}{}
+	}
+
+	// Intersect the new Stash from the old
+	add = make([]GGGID, 0)
+	for _, id := range s.Items {
+		// Check if item already exists, if it doesn't, we need to add it
+		if _, ok := existing[id]; ok {
+			// Remove it from the existing if it exist
+			//
+			// This will allow us to take the remaining items in existing
+			// as those that are not found or shared in the new update and
+			// then remove them.
+			delete(existing, id)
+		} else {
+			// We need to add any items not found
+			add = append(add, id)
+		}
+	}
+
+	// Pull out all the remaining keys in existing to find the items that
+	// are no longer present in the new update and need to be removed.
+	remove = make([]GGGID, len(existing))[:0]
+	for id := range existing {
+		remove = append(remove, id)
+	}
+
+	return
+}
+
 // StashStashToCompact converts fat Item records to their compact form
 // while also stripping items out in their compact form.
 func StashStashToCompact(stashes []stash.Stash,
