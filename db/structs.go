@@ -335,7 +335,7 @@ type Stash struct {
 // StashStashToCompact converts fat Item records to their compact form
 // while also stripping items out in their compact form.
 func StashStashToCompact(stashes []stash.Stash,
-	db *bolt.DB) ([]Stash, []Item, error) {
+	db *bolt.DB) ([]Stash, [][]Item, error) {
 
 	// Grab a new timestamp, all of the Stashes will share the same time
 	when := NewTimestamp()
@@ -343,8 +343,11 @@ func StashStashToCompact(stashes []stash.Stash,
 	// Compact stashes and flatten items
 	compact := make([]Stash, len(stashes))[:0] // Sliced to zero to allow append
 	flatItems := make([]stash.Item, 0)
-	// Also, keep track of per-stash leagues
-	leagues := make([]string, len(stashes))[:0] // Sliced to zero to allow append
+	// Keep track of per-stash leagues
+	leagues := make([]string, len(stashes))[:0]
+	// Keep track of items per-stash so we can unflatten them into per-stash
+	// item sets
+	itemsPerStash := make([]int, len(stashes))[:0]
 	for _, stash := range stashes {
 		// We skip empty stashes as we will be unable to assign
 		// then with a LeagueHeapID
@@ -369,6 +372,8 @@ func StashStashToCompact(stashes []stash.Stash,
 
 		// Note the league for this Stash
 		leagues = append(leagues, stash.Items[0].League)
+		// Note the number of items included in this stash
+		itemsPerStash = append(itemsPerStash, len(stash.Items))
 
 		flatItems = append(flatItems, stash.Items...)
 	}
@@ -383,12 +388,23 @@ func StashStashToCompact(stashes []stash.Stash,
 		compact[i].League = id
 	}
 
+	// Grab the compact items as their flat form
 	compactItems, err := StashItemsToCompact(flatItems, db)
 	if err != nil {
 		err = fmt.Errorf("failed to compact items, err=%s", err)
 		return nil, nil, err
 	}
 
-	return compact, compactItems, nil
+	// Unflatten the items so they can match an associated stash
+	items := make([][]Item, len(leagueIDs)) // Sized exactly using leagueIDs
+	lastItemBase := 0
+	for i, count := range itemsPerStash {
+		itemGroup := compactItems[lastItemBase : lastItemBase+count]
+		items[i] = itemGroup
+		// items[i] = compactItems[lastItemBase:count]
+		lastItemBase += count
+	}
+
+	return compact, items, nil
 
 }
