@@ -121,43 +121,54 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 
 // RemoveItems removes the provided IDs from the database
 //
-// All provided IDs must be under the same League. Timestamps are provided
-// on a per-item basis to allow index removal
+// All provided IDs must be under the same League.
+//
+// For higher performance, callers can sort the IDs to allow for more
+// sequential access behaviors when handling the heap
+func removeItems(ids []ID, league LeagueHeapID, tx *bolt.Tx) error {
+
+	// Get the league bucket
+	leagueBucket := getLeagueItemBucket(league, tx)
+
+	// Keep track of details for removed items so they can have their
+	// indices removed
+	items := make([]Item, len(ids))
+	for i, id := range ids {
+		// We need to fetch the item to have sufficient information
+		// to remove all of its index entries
+		itemBytes := leagueBucket.Get(id[:])
+		if itemBytes == nil {
+			return fmt.Errorf("item not found, cannot remove")
+		}
+		// Delete the item from the heap
+		leagueBucket.Delete(id[:])
+
+		var item Item
+		if _, err := item.UnmarshalMsg(itemBytes); err != nil {
+			return fmt.Errorf("failed to Unmarshal Item from heap, err=%s", err)
+		}
+		items[i] = item
+	}
+
+	// Remove associate index entries
+	if err := DeindexItems(items, tx); err != nil {
+		return fmt.Errorf("failed remove item indices, err=%s", err)
+	}
+
+	return nil
+
+}
+
+// RemoveItems removes the provided IDs from the database
+//
+// All provided IDs must be under the same League.
 //
 // For higher performance, callers can sort the IDs to allow for more
 // sequential access behaviors when handling the heap
 func RemoveItems(ids []ID, league LeagueHeapID, db *bolt.DB) error {
 
 	return db.Update(func(tx *bolt.Tx) error {
-		// Get the league bucket
-		leagueBucket := getLeagueItemBucket(league, tx)
-
-		// Keep track of details for removed items so they can have their
-		// indices removed
-		items := make([]Item, len(ids))
-		for i, id := range ids {
-			// We need to fetch the item to have sufficient information
-			// to remove all of its index entries
-			itemBytes := leagueBucket.Get(id[:])
-			if itemBytes == nil {
-				return fmt.Errorf("item not found, cannot remove")
-			}
-			// Delete the item from the heap
-			leagueBucket.Delete(id[:])
-
-			var item Item
-			if _, err := item.UnmarshalMsg(itemBytes); err != nil {
-				return fmt.Errorf("failed to Unmarshal Item from heap, err=%s", err)
-			}
-			items[i] = item
-		}
-
-		// Remove associate index entries
-		if err := DeindexItems(items, tx); err != nil {
-			return fmt.Errorf("failed remove item indices, err=%s", err)
-		}
-
-		return nil
+		return removeItems(ids, league, tx)
 	})
 
 }
