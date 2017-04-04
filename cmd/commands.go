@@ -99,7 +99,7 @@ var storeItemsCmd = &cobra.Command{
 			return
 		}
 
-		updated, err := db.AddStashes(cStashes, cItems, bdb)
+		stats, err := db.AddStashes(cStashes, cItems, bdb)
 		if err != nil {
 			fmt.Printf("failed to store stashes, err=%s\n", err)
 			return
@@ -122,11 +122,12 @@ var storeItemsCmd = &cobra.Command{
 		representativeItem := db.Item{}
 		serialItemSize := representativeItem.Msgsize()
 
-		fmt.Printf(`items stored done,
-%d stashes added, %d stashes overwritten,
+		fmt.Printf(`done,
+%s
 %d items total, itemSize=%d bytes
-%d index entries\n`,
-			len(cItems), updated, itemCount, serialItemSize, indexCount)
+%d index entries
+`,
+			stats, itemCount, serialItemSize, indexCount)
 	},
 }
 

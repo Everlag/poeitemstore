@@ -8,6 +8,27 @@ import (
 
 const stashBucket string = "stashes"
 
+// StashUpdateStats represents the actual
+// work done in an operation that is applied to Stashes.
+type StashUpdateStats struct {
+	Added   int // Number of stashes added
+	Updated int // Number of stashes updated
+	Intact  int // Number of stashes without any changes made
+	// Items give item-wise stats
+	Items struct {
+		Added   int
+		Removed int
+		Kept    int
+	}
+}
+
+func (s StashUpdateStats) String() string {
+	return fmt.Sprintf(`stashes: %d added | %d updated | %d intact
+  items: %d added | %d removed | %d kept`,
+		s.Added, s.Updated, s.Intact,
+		s.Items.Added, s.Items.Removed, s.Items.Kept)
+}
+
 // getStashMetaBucket returns the bucket corresponding
 // to a specific league for holding stash metadata
 //
@@ -34,7 +55,7 @@ func getStashMetaBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 //
 // This DOES NOT actually update the stashmeta bucket entry for the stash
 func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
-	tx *bolt.Tx) error {
+	stats *StashUpdateStats, tx *bolt.Tx) error {
 
 	var old Stash
 	if _, err := old.UnmarshalMsg(oldSerial); err != nil {
@@ -43,6 +64,17 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 
 	// Determine which items get added and which get removed
 	add, remove := newStash.Diff(old)
+
+	stats.Items.Added += len(add)
+	stats.Items.Removed += len(remove)
+	stats.Items.Kept += len(newItems) - (len(add) + len(remove))
+	// No additions or removals means these are all in the database
+	// and currently valid. Hence, we can skip the remainder of our work.
+	if len(add)+len(remove) == 0 {
+		stats.Intact++
+		return nil
+	}
+	stats.Updated++
 
 	// Translate the ids to remove
 	removeIDs, err := GetGGGIDTranslations(remove, newStash.League, tx)
@@ -80,21 +112,21 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 // AddStashes adds tbe given items to their correct paths in the database
 //
 // Provided stashes CAN differ in their league.
-func AddStashes(stashes []Stash, items [][]Item, db *bolt.DB) (int, error) {
+func AddStashes(stashes []Stash, items [][]Item,
+	db *bolt.DB) (*StashUpdateStats, error) {
 
 	// Silently exit when no items stashes to add
 	if len(stashes) < 1 {
-		return 0, nil
+		return nil, nil
 	}
 	if len(stashes) != len(items) {
-		return 0, fmt.Errorf("each stash must have matching items, got %d!=%d",
+		return nil, fmt.Errorf("each stash must have matching items, got %d!=%d",
 			len(stashes), len(items))
 	}
 
-	// Keep track of the number of items we overwrite in this process
-	updated := 0
+	stats := StashUpdateStats{}
 
-	return updated, db.Update(func(tx *bolt.Tx) error {
+	return &stats, db.Update(func(tx *bolt.Tx) error {
 
 		// Add all of the stash metadata to the stashMeta
 		for i, stash := range stashes {
@@ -116,12 +148,13 @@ func AddStashes(stashes []Stash, items [][]Item, db *bolt.DB) (int, error) {
 					return fmt.Errorf("failed to add items for stash id=%s, err=%s",
 						stash.ID, err)
 				}
+				stats.Added++
+				stats.Items.Added += len(items[i])
 			} else {
 				// Handle trivial case of just needing to add the entire stash
 				meta.Put(stash.ID[:], serial)
 				// Take care of diffing the stash
-				stashDiffUpdate(oldSerial, stash, items[i], tx)
-				updated++
+				stashDiffUpdate(oldSerial, stash, items[i], &stats, tx)
 			}
 
 			// Then update the metadata
