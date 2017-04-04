@@ -82,7 +82,8 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 		return fmt.Errorf("failed to translate GGGIDs to local IDs, err=%s",
 			err)
 	}
-	// And get rid of them
+	// And get rid of those to remove
+	// TODO: look into sorting these before removal for performance benefits
 	err = removeItems(removeIDs, newStash.League, tx)
 	if err != nil {
 		return fmt.Errorf("failed to removeItems, err=%s", err)
