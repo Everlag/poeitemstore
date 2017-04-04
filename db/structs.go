@@ -328,12 +328,17 @@ type Stash struct {
 	AccountName string       // Account-wide name, we need nothing else to PM
 	Items       []GGGID      // GGGIDs for all items stored in that Stash
 	League      LeagueHeapID // LeagueHeapID as stashes are single-league
+
+	When Timestamp // When this stash update was processed
 }
 
 // StashStashToCompact converts fat Item records to their compact form
 // while also stripping items out in their compact form.
 func StashStashToCompact(stashes []stash.Stash,
 	db *bolt.DB) ([]Stash, []Item, error) {
+
+	// Grab a new timestamp, all of the Stashes will share the same time
+	when := NewTimestamp()
 
 	// Compact stashes and flatten items
 	compact := make([]Stash, len(stashes))[:0] // Sliced to zero to allow append
@@ -350,6 +355,7 @@ func StashStashToCompact(stashes []stash.Stash,
 		compactStash := Stash{
 			AccountName: stash.AccountName,
 			ID:          GGGIDFromUID(stash.ID),
+			When:        when,
 		}
 
 		// Populate GGGIDs in this Stash
