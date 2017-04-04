@@ -79,3 +79,29 @@ func GetTranslations(items []Item, db *bolt.DB) error {
 		return nil
 	})
 }
+
+// GetGGGIDTranslations associates each provided item with an interal ID
+// if it has not already been assigned one.
+//
+// All IDs are in the context of the provided league, hence this is typically
+// used for managing individual stash updates and that's why
+// we take a transaction.
+//
+// This returns the newly translated ID positionally mapping to the provided
+// GGGIDs.
+func GetGGGIDTranslations(gggs []GGGID, league LeagueHeapID,
+	tx *bolt.Tx) ([]ID, error) {
+
+	ids := make([]ID, len(gggs))
+
+	for i, ggg := range gggs {
+		id, err := getTranslation(league, ggg, tx)
+		if err != nil {
+			return nil, err
+		}
+
+		ids[i] = id
+	}
+
+	return ids, nil
+}
