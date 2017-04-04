@@ -105,18 +105,28 @@ var storeItemsCmd = &cobra.Command{
 			return
 		}
 
-		var count int
-		count, err = db.ItemStoreCount(bdb)
+		var itemCount int
+		itemCount, err = db.ItemStoreCount(bdb)
 		if err != nil {
 			fmt.Printf("failed to get item count, err=%s\n", err)
+			return
+		}
+
+		var indexCount int
+		indexCount, err = db.IndexEntryCount(bdb)
+		if err != nil {
+			fmt.Printf("failed to get index entry count, err=%s\n", err)
 			return
 		}
 
 		representativeItem := db.Item{}
 		serialItemSize := representativeItem.Msgsize()
 
-		fmt.Printf("items stored done, %d stashes added, %d stashes overwritten, %d items total, itemSize=%d bytes\n",
-			len(cItems), updated, count, serialItemSize)
+		fmt.Printf(`items stored done,
+%d stashes added, %d stashes overwritten,
+%d items total, itemSize=%d bytes
+%d index entries\n`,
+			len(cItems), updated, itemCount, serialItemSize, indexCount)
 	},
 }
 

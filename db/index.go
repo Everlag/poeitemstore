@@ -236,3 +236,31 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 	return nil
 
 }
+
+// IndexEntryCount returns the number of index entries across all leagues
+func IndexEntryCount(db *bolt.DB) (int, error) {
+	var count int
+
+	leagueStrings, err := ListLeagues(db)
+	if err != nil {
+		return 0, err
+	}
+	leagueIDs, err := GetLeagues(leagueStrings, db)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, db.View(func(tx *bolt.Tx) error {
+
+		for _, id := range leagueIDs {
+			b := getLeagueIndexBucket(id, tx)
+			if b == nil {
+				return fmt.Errorf("%s bucket not found", itemStoreBucket)
+			}
+			stats := b.Stats()
+			count += stats.KeyN
+		}
+
+		return nil
+	})
+}
