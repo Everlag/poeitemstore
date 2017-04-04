@@ -69,7 +69,7 @@ func AddStashes(stashes []Stash, items [][]Item, db *bolt.DB) (int, error) {
 			meta.Put(stash.ID[:], serial)
 
 			// Add the items for this stash
-			if _, err := addItems(items[i], stash.When, tx); err != nil {
+			if _, err := addItems(items[i], tx); err != nil {
 				return fmt.Errorf("failed to add items for stash id=%s, err=%s",
 					stash.ID, err)
 			}

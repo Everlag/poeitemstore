@@ -149,7 +149,7 @@ func decodeModIndexKey(key []byte) ([]uint16, error) {
 // for efficient lookup. Returns number of index entries added.
 //
 // Provided items CAN differ in their league.
-func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
+func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 
 	// Sanity check passed in transaction, better to do this than panic.
 	if !tx.Writable() {
@@ -174,7 +174,7 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 				return 0, fmt.Errorf("failed to get item mod bucket")
 			}
 
-			modKey := encodeModIndexKey(mod, now, item.UpdateSequence)
+			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
 
 			// We need to make a copy of the item ID or bolt
 			// will get a buffer reused for all items.
@@ -197,8 +197,7 @@ func IndexItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 //
 // If an index entry cannot be removed, we return an error. This ensures
 // all existing index entries must be alive
-func DeindexItems(items []Item, times []Timestamp,
-	tx *bolt.Tx) error {
+func DeindexItems(items []Item, tx *bolt.Tx) error {
 
 	// Sanity check passed in transaction, better to do this than panic.
 	if !tx.Writable() {
@@ -210,7 +209,7 @@ func DeindexItems(items []Item, times []Timestamp,
 		return nil
 	}
 
-	for i, item := range items {
+	for _, item := range items {
 
 		for _, mod := range item.Mods {
 			// Grab the bucket we can actually insert things into
@@ -220,7 +219,7 @@ func DeindexItems(items []Item, times []Timestamp,
 				return fmt.Errorf("failed to get item mod bucket")
 			}
 
-			modKey := encodeModIndexKey(mod, times[i], item.UpdateSequence)
+			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
 
 			// We need to make a copy of the item ID or bolt
 			// will get a buffer reused for all items.

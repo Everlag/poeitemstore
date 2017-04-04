@@ -163,7 +163,8 @@ type Item struct {
 	Corrupted      bool
 	Identified     bool
 	Mods           []ItemMod
-	UpdateSequence uint16 // The sequence number associated with this item
+	When           Timestamp // When this stash update was processed
+	UpdateSequence uint16    // The sequence number associated with this item
 }
 
 // Inflate returns an inflated equivalent item fit for human use
@@ -197,7 +198,8 @@ func (item Item) Inflate(db *bolt.DB) stash.Item {
 //
 // This also ensures all strings present on that item will be available
 // on the StringHeap
-func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
+func StashItemsToCompact(items []stash.Item, when Timestamp,
+	db *bolt.DB) ([]Item, error) {
 
 	// Extract everything we need to put onto the string heap
 	names := make([]string, len(items))
@@ -293,6 +295,7 @@ func StashItemsToCompact(items []stash.Item, db *bolt.DB) ([]Item, error) {
 			Identified:     item.Identified,
 			Corrupted:      item.Corrupted,
 			UpdateSequence: uint16(i),
+			When:           when,
 		}
 
 		// And now the worst part, the item mods :|
@@ -328,8 +331,6 @@ type Stash struct {
 	AccountName string       // Account-wide name, we need nothing else to PM
 	Items       []GGGID      // GGGIDs for all items stored in that Stash
 	League      LeagueHeapID // LeagueHeapID as stashes are single-league
-
-	When Timestamp // When this stash update was processed
 }
 
 // StashStashToCompact converts fat Item records to their compact form
@@ -358,7 +359,6 @@ func StashStashToCompact(stashes []stash.Stash,
 		compactStash := Stash{
 			AccountName: stash.AccountName,
 			ID:          GGGIDFromUID(stash.ID),
-			When:        when,
 		}
 
 		// Populate GGGIDs in this Stash
@@ -389,7 +389,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	}
 
 	// Grab the compact items as their flat form
-	compactItems, err := StashItemsToCompact(flatItems, db)
+	compactItems, err := StashItemsToCompact(flatItems, when, db)
 	if err != nil {
 		err = fmt.Errorf("failed to compact items, err=%s", err)
 		return nil, nil, err

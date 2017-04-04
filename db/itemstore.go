@@ -44,7 +44,7 @@ func getNextItemID(league *bolt.Bucket) (ID, error) {
 // AddItems adds tbe given items to their correct paths in the database
 //
 // Provided items CAN differ in their league.
-func addItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
+func addItems(items []Item, tx *bolt.Tx) (int, error) {
 
 	// Silently exit when no items present to add
 	if len(items) < 1 {
@@ -80,7 +80,7 @@ func addItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
 	}
 
 	// Index each of the items
-	_, err := IndexItems(items, now, tx)
+	_, err := IndexItems(items, tx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to add indices, err=%s", err)
 	}
@@ -111,12 +111,9 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 	// Keep track of the number of items we overwrite in this process
 	overwritten := 0
 
-	// Acquire now
-	now := NewTimestamp()
-
 	return overwritten, db.Update(func(tx *bolt.Tx) error {
 		var err error
-		overwritten, err = addItems(items, now, tx)
+		overwritten, err = addItems(items, tx)
 		return err
 	})
 
@@ -129,13 +126,7 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 //
 // For higher performance, callers can sort the IDs to allow for more
 // sequential access behaviors when handling the heap
-func RemoveItems(ids []ID, times []Timestamp, league LeagueHeapID,
-	db *bolt.DB) error {
-
-	if len(ids) != len(times) {
-		return fmt.Errorf("need 1 Timestamp per ID, have %d!=%d",
-			len(times), len(ids))
-	}
+func RemoveItems(ids []ID, league LeagueHeapID, db *bolt.DB) error {
 
 	return db.Update(func(tx *bolt.Tx) error {
 		// Get the league bucket
@@ -162,7 +153,7 @@ func RemoveItems(ids []ID, times []Timestamp, league LeagueHeapID,
 		}
 
 		// Remove associate index entries
-		if err := DeindexItems(items, times, tx); err != nil {
+		if err := DeindexItems(items, tx); err != nil {
 			return fmt.Errorf("failed remove item indices, err=%s", err)
 		}
 
