@@ -93,15 +93,15 @@ var storeItemsCmd = &cobra.Command{
 		}
 
 		// Flatten the items
-		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
 		if err != nil {
 			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
 			return
 		}
 
-		overwritten, err := db.AddItems(cItems, bdb)
+		updated, err := db.AddStashes(cStashes, cItems, bdb)
 		if err != nil {
-			fmt.Printf("failed to store items, err=%s\n", err)
+			fmt.Printf("failed to store stashes, err=%s\n", err)
 			return
 		}
 
@@ -115,8 +115,8 @@ var storeItemsCmd = &cobra.Command{
 		representativeItem := db.Item{}
 		serialItemSize := representativeItem.Msgsize()
 
-		fmt.Printf("items stored done, %d items added, %d item overwritten, %d items total, itemSize=%d bytes\n",
-			len(cItems), overwritten, count, serialItemSize)
+		fmt.Printf("items stored done, %d stashes added, %d stashes overwritten, %d items total, itemSize=%d bytes\n",
+			len(cItems), updated, count, serialItemSize)
 	},
 }
 
