@@ -44,6 +44,57 @@ func getNextItemID(league *bolt.Bucket) (ID, error) {
 // AddItems adds tbe given items to their correct paths in the database
 //
 // Provided items CAN differ in their league.
+func addItems(items []Item, now Timestamp, tx *bolt.Tx) (int, error) {
+
+	// Silently exit when no items present to add
+	if len(items) < 1 {
+		return 0, nil
+	}
+
+	// NOTE: we cannot preallocate the buffer for marshalling
+	// each item as the buffer must remain constant post-Put
+	// for the duration of the transaction.
+	//
+	// So yeah, that was fun to figure out. RTFM helped :|
+
+	// Keep track of the number of items we overwrite in this process
+	overwritten := 0
+
+	// Add all of the items to the itemStore
+	for _, item := range items {
+
+		// Serialize the item
+		serial, err := item.MarshalMsg(nil)
+		if err != nil {
+			return 0, fmt.Errorf("failed to Marshal Item, err=%s", err)
+		}
+
+		league := getLeagueItemBucket(item.League, tx)
+
+		val := league.Get(item.ID[:])
+		if val != nil {
+			overwritten++
+		}
+
+		league.Put(item.ID[:], serial)
+	}
+
+	// Index each of the items
+	_, err := IndexItems(items, now, tx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to add indices, err=%s", err)
+	}
+
+	return overwritten, nil
+
+}
+
+// AddItems adds tbe given items to their correct paths in the database
+//
+// Provided items CAN differ in their league.
+//
+// This is simply a wrapper for addItems that also establishes the transaction
+// as well as include the timestamp
 func AddItems(items []Item, db *bolt.DB) (int, error) {
 
 	// Silently exit when no items present to add
@@ -64,33 +115,9 @@ func AddItems(items []Item, db *bolt.DB) (int, error) {
 	now := NewTimestamp()
 
 	return overwritten, db.Update(func(tx *bolt.Tx) error {
-
-		// Add all of the items to the itemStore
-		for _, item := range items {
-
-			// Serialize the item
-			serial, err := item.MarshalMsg(nil)
-			if err != nil {
-				return fmt.Errorf("failed to Marshal Item, err=%s", err)
-			}
-
-			league := getLeagueItemBucket(item.League, tx)
-
-			val := league.Get(item.ID[:])
-			if val != nil {
-				overwritten++
-			}
-
-			league.Put(item.ID[:], serial)
-		}
-
-		// Index each of the items
-		_, err := IndexItems(items, now, tx)
-		if err != nil {
-			return fmt.Errorf("failed to add indices, err=%s", err)
-		}
-
-		return nil
+		var err error
+		overwritten, err = addItems(items, now, tx)
+		return err
 	})
 
 }

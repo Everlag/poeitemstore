@@ -15,7 +15,7 @@ const leagueNamespaceBucket string = "leagueNamespace"
 //
 // Any league will always contain these
 var leagueSubBuckets = []string{
-	itemStoreBucket, indiceBucket, idTranslateBucket,
+	itemStoreBucket, indiceBucket, idTranslateBucket, stashBucket,
 }
 
 // getLeagueBucket returns the top-level bucket for a specific league
