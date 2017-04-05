@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/Everlag/poeitemstore/db"
+	"github.com/Everlag/poeitemstore/dbTest/testData"
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 )
@@ -77,7 +78,7 @@ func NewTempDatabase(t *testing.T) *bolt.DB {
 // directly used in db.AddStashes.
 func GetTestStashUpdate(path string, bdb *bolt.DB,
 	t *testing.T) ([]db.Stash, [][]db.Item) {
-	raw, err := Asset(path)
+	raw, err := testData.Asset(path)
 	if err != nil {
 		t.Fatalf("failed to fetch '%s', err=%s", path, err)
 	}

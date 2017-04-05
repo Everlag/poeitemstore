@@ -18,7 +18,7 @@ func Test11StashesAdd(t *testing.T) {
 
 	// Test to ensure we can handle a single update
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/11Stashes.json",
+		stashes, items := GetTestStashUpdate("data/11Stashes.json",
 			bdb, t)
 
 		var err error
@@ -29,7 +29,7 @@ func Test11StashesAdd(t *testing.T) {
 	})
 
 	t.Run("3StashesAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/11Stashes - 3StashesAddedWith92Items.json",
+		stashes, items := GetTestStashUpdate("data/11Stashes - 3StashesAddedWith92Items.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)
@@ -62,7 +62,7 @@ func Test11StashesPartial(t *testing.T) {
 
 	// Test to ensure we can handle a single update
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/11Stashes.json",
+		stashes, items := GetTestStashUpdate("data/11Stashes.json",
 			bdb, t)
 
 		var err error
@@ -73,7 +73,7 @@ func Test11StashesPartial(t *testing.T) {
 	})
 
 	t.Run("2StashesNotIncluded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/11Stashes - 2StashesRemovedWith169Items.json",
+		stashes, items := GetTestStashUpdate("data/11Stashes - 2StashesRemovedWith169Items.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)

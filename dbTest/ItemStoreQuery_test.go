@@ -125,7 +125,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash.json",
+		stashes, items := GetTestStashUpdate("data/singleStash.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -150,7 +150,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Test to ensure the added item can be found
 	t.Run("3ItemsAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash - 3ItemsAdded.json",
+		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsAdded.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated

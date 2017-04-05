@@ -18,7 +18,7 @@ func TestSingleStashAdd(t *testing.T) {
 
 	// Test to ensure we can handle a single update
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash.json",
+		stashes, items := GetTestStashUpdate("data/singleStash.json",
 			bdb, t)
 
 		var err error
@@ -29,7 +29,7 @@ func TestSingleStashAdd(t *testing.T) {
 	})
 
 	t.Run("3ItemsAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash - 3ItemsAdded.json",
+		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsAdded.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)
@@ -61,7 +61,7 @@ func TestSingleStashRemove(t *testing.T) {
 
 	// Test to ensure we can handle a single update
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash.json",
+		stashes, items := GetTestStashUpdate("data/singleStash.json",
 			bdb, t)
 
 		var err error
@@ -72,7 +72,7 @@ func TestSingleStashRemove(t *testing.T) {
 	})
 
 	t.Run("3ItemsRemoved", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash - 3ItemsRemoved.json",
+		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsRemoved.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)
@@ -104,7 +104,7 @@ func TestSingleStashAddAndRemove(t *testing.T) {
 
 	// Test to ensure we can handle a single update
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash.json",
+		stashes, items := GetTestStashUpdate("data/singleStash.json",
 			bdb, t)
 
 		var err error
@@ -115,7 +115,7 @@ func TestSingleStashAddAndRemove(t *testing.T) {
 	})
 
 	t.Run("3ItemsAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash - 3ItemsAdded.json",
+		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsAdded.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)
@@ -134,7 +134,7 @@ func TestSingleStashAddAndRemove(t *testing.T) {
 	})
 
 	t.Run("3ItemsRemoved", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("testData/singleStash - 3ItemsRemoved.json",
+		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsRemoved.json",
 			bdb, t)
 
 		stats, err := db.AddStashes(stashes, items, bdb)
