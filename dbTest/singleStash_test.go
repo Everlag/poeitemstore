@@ -92,7 +92,7 @@ func TestSingleStashRemove(t *testing.T) {
 
 }
 
-// Test additions to a single stash on a per-item level
+// Test additions and removals for a single stash on a per-item level
 func TestSingleStashAddAndRemove(t *testing.T) {
 
 	t.Parallel()
