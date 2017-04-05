@@ -6,8 +6,8 @@ import (
 
 	"time"
 
-	"github.com/Everlag/gothing/cmd"
-	"github.com/Everlag/gothing/db"
+	"github.com/Everlag/poeitemstore/cmd"
+	"github.com/Everlag/poeitemstore/db"
 )
 
 func main() {

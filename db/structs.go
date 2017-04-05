@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"github.com/Everlag/gothing/stash"
+	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 )
 

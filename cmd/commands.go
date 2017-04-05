@@ -11,8 +11,8 @@ import (
 
 	"strconv"
 
-	"github.com/Everlag/gothing/db"
-	"github.com/Everlag/gothing/stash"
+	"github.com/Everlag/poeitemstore/db"
+	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 )
 

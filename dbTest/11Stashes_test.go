@@ -3,7 +3,7 @@ package dbTest
 import (
 	"testing"
 
-	"github.com/Everlag/gothing/db"
+	"github.com/Everlag/poeitemstore/db"
 )
 
 // Test adding whole stashes

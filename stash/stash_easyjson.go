@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson6ff8f229DecodeGithubComEverlagGothingStash(in *jlexer.Lexer, out *Stash) {
+func easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash(in *jlexer.Lexer, out *Stash) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -81,7 +81,7 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash(in *jlexer.Lexer, out *S
 		in.Consumed()
 	}
 }
-func easyjson6ff8f229EncodeGithubComEverlagGothingStash(out *jwriter.Writer, in Stash) {
+func easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash(out *jwriter.Writer, in Stash) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -144,27 +144,27 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash(out *jwriter.Writer, in 
 // MarshalJSON supports json.Marshaler interface
 func (v Stash) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash(&w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Stash) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash(w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Stash) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash(&r, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Stash) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash(l, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash(l, v)
 }
-func easyjson6ff8f229DecodeGithubComEverlagGothingStash1(in *jlexer.Lexer, out *Response) {
+func easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash1(in *jlexer.Lexer, out *Response) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -218,7 +218,7 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash1(in *jlexer.Lexer, out *
 		in.Consumed()
 	}
 }
-func easyjson6ff8f229EncodeGithubComEverlagGothingStash1(out *jwriter.Writer, in Response) {
+func easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash1(out *jwriter.Writer, in Response) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -251,27 +251,27 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash1(out *jwriter.Writer, in
 // MarshalJSON supports json.Marshaler interface
 func (v Response) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash1(&w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Response) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash1(w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Response) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash1(&r, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Response) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash1(l, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash1(l, v)
 }
-func easyjson6ff8f229DecodeGithubComEverlagGothingStash2(in *jlexer.Lexer, out *Item) {
+func easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash2(in *jlexer.Lexer, out *Item) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -391,7 +391,7 @@ func easyjson6ff8f229DecodeGithubComEverlagGothingStash2(in *jlexer.Lexer, out *
 		in.Consumed()
 	}
 }
-func easyjson6ff8f229EncodeGithubComEverlagGothingStash2(out *jwriter.Writer, in Item) {
+func easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash2(out *jwriter.Writer, in Item) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -516,23 +516,23 @@ func easyjson6ff8f229EncodeGithubComEverlagGothingStash2(out *jwriter.Writer, in
 // MarshalJSON supports json.Marshaler interface
 func (v Item) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(&w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Item) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson6ff8f229EncodeGithubComEverlagGothingStash2(w, v)
+	easyjson6ff8f229EncodeGithubComEverlagPoeitemstoreStash2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Item) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(&r, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Item) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson6ff8f229DecodeGithubComEverlagGothingStash2(l, v)
+	easyjson6ff8f229DecodeGithubComEverlagPoeitemstoreStash2(l, v)
 }
