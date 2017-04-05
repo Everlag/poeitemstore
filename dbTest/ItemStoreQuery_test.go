@@ -170,3 +170,59 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 	})
 
 }
+
+// Test as searching within a single stash and the case of
+// no matches. This is a degenerate case.
+func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
+
+	t.Parallel()
+
+	bdb := NewTempDatabase(t)
+
+	// Define our search up here, it will be constant for all of
+	// our sub-tests
+	search := cmd.MultiModSearch{
+		MaxDesired: 2,
+		RootType:   "Jewelry",
+		RootFlavor: "Ring",
+		League:     "Legacy",
+		Mods: []string{
+			"+# to Strength",
+			"+# to Intelligence",
+			"+# to maximum Energy Shield",
+			"+#% to Cold Resistance",
+			"#% increased Rarity of Items found",
+		},
+		MinValues: []uint16{
+			20,
+			20,
+			10,
+			100,
+			100,
+		},
+	}
+
+	// Test to ensure a good baseline
+	t.Run("Baseline", func(t *testing.T) {
+		stashes, items := GetTestStashUpdate("data/singleStash.json",
+			bdb, t)
+
+		// This needs to be done AFTER the database has been populated
+		query, _ := MultiModSearchToItemStoreQuery(search, bdb, t)
+
+		_, err := db.AddStashes(stashes, items, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		// Run the search and translate into items
+		ids, err := query.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed to run query, err=%s", err)
+		}
+		if len(ids) > 0 {
+			t.Fatalf("found items when impossible")
+		}
+	})
+
+}
