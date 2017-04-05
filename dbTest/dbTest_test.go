@@ -9,6 +9,8 @@ import (
 
 	"sync"
 
+	"github.com/Everlag/gothing/db"
+	"github.com/Everlag/gothing/stash"
 	"github.com/boltdb/bolt"
 )
 
@@ -54,7 +56,7 @@ func NewTempDatabase(t *testing.T) *bolt.DB {
 		t.Fatalf("failed to open TempFile, err=%s", err)
 	}
 
-	db, err := bolt.Open(f.Name(), 0777, nil)
+	db, err := db.Boot(f.Name())
 	if err != nil {
 		t.Fatalf("failed to open db, err=%s", err)
 	}
@@ -65,6 +67,40 @@ func NewTempDatabase(t *testing.T) *bolt.DB {
 	defer envSync.Unlock()
 
 	return db
+}
+
+// GetTestStashUpdate returns the []db.Stash kept in the dbTest directory
+// and accessible using Asset() from go-bindata.
+//
+// This requires a boltdb.DB as it performs compaction rather than
+// returning []stash.Stash, this means the return values can be
+// directly used in db.AddStashes.
+func GetTestStashUpdate(path string, bdb *bolt.DB,
+	t *testing.T) ([]db.Stash, [][]db.Item) {
+	raw, err := Asset(path)
+	if err != nil {
+		t.Fatalf("failed to fetch '%s', err=%s", path, err)
+	}
+
+	resp, err := stash.RespFromJSON(raw)
+	if err != nil {
+		t.Fatalf("failed to unmarshal testing json, path=%s, err=%s",
+			path, err)
+	}
+
+	cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+	if err != nil {
+		t.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
+	}
+
+	return cStashes, cItems
+}
+
+// CompareStats tests the provided stats and fails if they are mismatched
+func CompareStats(expected, got *db.StashUpdateStats, t *testing.T) {
+	if err := expected.Compare(got); err != nil {
+		t.Fatalf("%s\n%s", err, got)
+	}
 }
 
 // TestMain prepares tests to be run
@@ -83,7 +119,10 @@ func TestMain(m *testing.M) {
 	os.Exit(ret)
 }
 
+// Consider this a template of
 func TestApples(t *testing.T) {
+
+	t.Parallel()
 
 	db := NewTempDatabase(t)
 	fmt.Printf("I have a database, neat!, db=%s\n", db)
