@@ -195,8 +195,19 @@ func GetStored() (*Response, error) {
 	}
 	defer f.Close()
 
+	serial, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ReadlAll from file")
+	}
+
+	return RespFromJSON(serial)
+}
+
+// RespFromJSON attempts to deserialize the provided data
+// and return it as a StashResponse
+func RespFromJSON(serial []byte) (*Response, error) {
 	var response Response
-	err = easyjson.UnmarshalFromReader(f, &response)
+	err := easyjson.Unmarshal(serial, &response)
 	// err = decoder.Decode(&response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
