@@ -72,8 +72,14 @@ func setupBuckets(db *bolt.DB) error {
 }
 
 // Boot gets the database from disk and performs necessary setup
-func Boot() (*bolt.DB, error) {
-	db, err := bolt.Open(DBLocation, 777, nil)
+//
+// If path is empty, it uses the default DBLocation
+func Boot(path string) (*bolt.DB, error) {
+	if path == "" {
+		path = DBLocation
+	}
+
+	db, err := bolt.Open(path, 777, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open %s as boltdb, err=%s", DBLocation, err)
 	}

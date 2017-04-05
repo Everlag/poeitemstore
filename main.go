@@ -12,7 +12,7 @@ import (
 
 func main() {
 
-	db, err := db.Boot()
+	db, err := db.Boot("")
 	if err != nil {
 		fmt.Printf("failed to open db, err=%s\n", err)
 		os.Exit(-1)
