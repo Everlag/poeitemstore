@@ -10,16 +10,53 @@ const stashBucket string = "stashes"
 
 // StashUpdateStats represents the actual
 // work done in an operation that is applied to Stashes.
+//
+// All values are expected to be >= 0
 type StashUpdateStats struct {
 	Added   int // Number of stashes added
 	Updated int // Number of stashes updated
 	Intact  int // Number of stashes without any changes made
 	// Items give item-wise stats
-	Items struct {
-		Added   int
-		Removed int
-		Kept    int
+	Items ItemUpdateStats
+}
+
+// ItemUpdateStats is a subfield of StashUpdateStats broken
+// out for easier instantiation.
+type ItemUpdateStats struct {
+	Added   int // Number of items added
+	Removed int // Number of items removed
+	Kept    int // Number of items kept
+}
+
+// Compare considers the receiver as the expected StashUpdateStats
+// while the other is tested to see if it matches. Any difference
+// between expected and other is reported as an error.
+func (s *StashUpdateStats) Compare(other *StashUpdateStats) error {
+	if s.Added != other.Added {
+		return fmt.Errorf("mismatched Added, expected %d, got %d",
+			s.Added, other.Added)
 	}
+	if s.Updated != other.Updated {
+		return fmt.Errorf("mismatched Updated, expected %d, got %d",
+			s.Updated, other.Updated)
+	}
+	if s.Intact != other.Intact {
+		return fmt.Errorf("mismatched Intact, expected %d, got %d",
+			s.Intact, other.Intact)
+	}
+	if s.Items.Added != other.Items.Added {
+		return fmt.Errorf("mismatched Items.Added, expected %d, got %d",
+			s.Items.Added, other.Items.Added)
+	}
+	if s.Items.Removed != other.Items.Removed {
+		return fmt.Errorf("mismatched Items.Removed, expected %d, got %d",
+			s.Items.Removed, other.Items.Removed)
+	}
+	if s.Items.Kept != other.Items.Kept {
+		return fmt.Errorf("mismatched Items.Kept, expected %d, got %d",
+			s.Items.Kept, other.Items.Kept)
+	}
+	return nil
 }
 
 func (s StashUpdateStats) String() string {
