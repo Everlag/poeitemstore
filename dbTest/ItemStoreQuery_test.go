@@ -237,7 +237,7 @@ func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
 }
 
 // Test as searching within multiple stashes
-func TestItemStoreQuery11Stashes(t *testing.T) {
+func TestItemStoreQuery11StashesSingleMod(t *testing.T) {
 
 	t.Parallel()
 
@@ -292,6 +292,88 @@ func TestItemStoreQuery11Stashes(t *testing.T) {
 	expected = append(expected,
 		db.GGGIDFromUID("4462e11ca8fbeeab11d83c156d10d00df9c69d7a05aba42f33d8110f84160b67"),
 		db.GGGIDFromUID("eb77c02e62c18a9ebaf3e48c19c3df6d931eb7afd2758ab1c626edd9b54f6450"))
+
+	// Test to ensure the added item can be found
+	t.Run("3StashesAdded", func(t *testing.T) {
+		stashes, items := GetTestStashUpdate("data/11Stashes - 3StashesAddedWith92Items.json",
+			bdb, t)
+
+		// This needs to be done AFTER the database has been populated
+		query, league := MultiModSearchToItemStoreQuery(search, bdb, t)
+
+		_, err := db.AddStashes(stashes, items, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		// Run the search and translate into items
+		ids, err := query.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed to run query, err=%s", err)
+		}
+		CompareQueryResultsToExpected(ids, league, expected, bdb, t)
+	})
+
+}
+
+// Test as searching within multiple stashes
+func TestItemStoreQuery11StashesMultiMod(t *testing.T) {
+
+	t.Parallel()
+
+	bdb := NewTempDatabase(t)
+
+	// Define our search up here, it will be constant for all of
+	// our sub-tests
+	search := cmd.MultiModSearch{
+		MaxDesired: 4,
+		RootType:   "Armour",
+		RootFlavor: "Boots",
+		League:     "Legacy",
+		Mods: []string{
+			"#% increased Movement Speed",
+			"+#% to Fire Resistance",
+		},
+		MinValues: []uint16{
+			24,
+			27,
+		},
+	}
+
+	// Keep the items we expect here.
+	//
+	// This will have items added between sub-tests when the database
+	// is being manipulated.
+	expected := []db.GGGID{
+		db.GGGIDFromUID("4c7382ccaaa9afe4c49498a21d7a9882a8db57528a732a4de2a886b5003263fe"),
+		db.GGGIDFromUID("6d428356ff76f580dd461e072a179604946eccab73d65a197ef87c3cfa3754bf"),
+		db.GGGIDFromUID("baa2c993ed0f4d9de5f1bf1a46d6cb43f64fd4de79dcdb10a50f8a43cc104898"),
+	}
+
+	// Test to ensure a good baseline
+	t.Run("Baseline", func(t *testing.T) {
+		stashes, items := GetTestStashUpdate("data/11Stashes.json",
+			bdb, t)
+
+		// This needs to be done AFTER the database has been populated
+		query, league := MultiModSearchToItemStoreQuery(search, bdb, t)
+
+		_, err := db.AddStashes(stashes, items, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		// Run the search and translate into items
+		ids, err := query.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed to run query, err=%s", err)
+		}
+		CompareQueryResultsToExpected(ids, league, expected, bdb, t)
+	})
+
+	// Add in the next item we expect to find following the next mutation
+	expected = append(expected,
+		db.GGGIDFromUID("12f142a8ffdaaf754510f66a75b4e27d6c3a954e5af6b36eb9844b8ca8b2fca3"))
 
 	// Test to ensure the added item can be found
 	t.Run("3StashesAdded", func(t *testing.T) {
