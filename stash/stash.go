@@ -242,19 +242,39 @@ func RespFromJSON(serial []byte) (*Response, error) {
 	return &response, nil
 }
 
-// FetchAndSetStore grabs the latest stash tab api update
-// and stores it in TestResponseLoc
-func FetchAndSetStore() error {
-	resp, err := http.Get(StashAPIBase)
+// FetchUpdate grabs the update indicated by the changeID.
+//
+// If empty changeID is provided, it grabs the default update.
+func FetchUpdate(changeID string) (*Response, error) {
+	endpoint := StashAPIBase
+	if changeID != "" {
+		endpoint = fmt.Sprintf("%s?id=%s", StashAPIBase, changeID)
+	}
+
+	resp, err := http.Get(endpoint)
 	if err != nil {
-		return fmt.Errorf("failed to call stash api, err=%s", err)
+		return nil,
+			fmt.Errorf("failed to call stash api, err=%s", err)
 	}
 	defer resp.Body.Close()
 
 	var response Response
 	err = easyjson.UnmarshalFromReader(resp.Body, &response)
 	if err != nil {
-		return fmt.Errorf("failed to decode stash tab response, err=%s", err)
+		return nil,
+			fmt.Errorf("failed to decode stash tab response, err=%s", err)
+	}
+
+	return &response, nil
+}
+
+// FetchAndSetStore grabs the latest stash tab api update
+// and stores it in TestResponseLoc
+func FetchAndSetStore() error {
+
+	response, err := FetchUpdate("")
+	if err != nil {
+		return fmt.Errorf("failed to fetch update, err=%s", err)
 	}
 
 	serial, err := response.MarshalJSON()
