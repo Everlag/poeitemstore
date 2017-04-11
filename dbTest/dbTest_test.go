@@ -97,6 +97,34 @@ func GetTestStashUpdate(path string, bdb *bolt.DB,
 	return cStashes, cItems
 }
 
+// GetChangeSet returns a stash.ChangeSet serialized at the provided path
+// which is accessible using Assets() from go-bindata
+func GetChangeSet(path string, t *testing.T) stash.ChangeSet {
+
+	raw, err := testData.Asset(path)
+	if err != nil {
+		t.Fatalf("failed to fetch '%s', err=%s", path, err)
+	}
+
+	var set stash.ChangeSet
+	if _, err := set.UnmarshalMsg(raw); err != nil {
+		t.Fatalf("failed to unmarshal '%s', err=%s",
+			path, err)
+	}
+
+	return set
+}
+
+// GetChangeSetInverter returns a mapping from index in a ChangeSet
+// to the ChangeID associated with that stash update
+func GetChangeSetInverter(set stash.ChangeSet) map[int]string {
+	inverter := make(map[int]string)
+	for k, v := range set.ChangeIDToIndex {
+		inverter[v] = k
+	}
+	return inverter
+}
+
 // CompareStats tests the provided stats and fails if they are mismatched
 func CompareStats(expected, got *db.StashUpdateStats, t *testing.T) {
 	if err := expected.Compare(got); err != nil {
