@@ -17,16 +17,29 @@ import (
 
 // ChangeSet represents the number
 type ChangeSet struct {
+	// Changes mapping from ID to position in Changes
+	ChangeIDToIndex map[string]int
 	// Changes as individually compressed
 	Changes []CompressedResponse
 	// Size as stored
 	Size int
 }
 
+// NewChangeSet returns an empty, initialized ChangeSet
+func NewChangeSet() ChangeSet {
+	return ChangeSet{
+		ChangeIDToIndex: make(map[string]int),
+		Changes:         make([]CompressedResponse, 0),
+		Size:            0,
+	}
+}
+
 // AddResponse includes another CompressedResponse inside the Changes
-func (changes *ChangeSet) AddResponse(comp CompressedResponse) {
+func (changes *ChangeSet) AddResponse(changeID string,
+	comp CompressedResponse) {
 	changes.Changes = append(changes.Changes, comp)
 	changes.Size += comp.Size
+	changes.ChangeIDToIndex[changeID] = changes.Size - 1
 }
 
 // Save stores the marshalled ChangeSet's at the provided location
@@ -40,6 +53,20 @@ func (changes *ChangeSet) Save(path string) error {
 		return fmt.Errorf("failed to encode and write file, err=%s", err)
 	}
 	return nil
+}
+
+// GetCompByChangeID returns the CompressedResponse associated with
+// a given changeID. Follows the _, ok pattern ala maps if not found
+func (changes *ChangeSet) GetCompByChangeID(changeID string) (*CompressedResponse,
+	bool) {
+
+	index, ok := changes.ChangeIDToIndex[changeID]
+	if !ok {
+		return nil, false
+	}
+
+	return &changes.Changes[index], true
+
 }
 
 // OpenChangeSet attempts to open a ChangeSet at the provided path
