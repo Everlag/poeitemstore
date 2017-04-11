@@ -98,6 +98,29 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 	}
 }
 
+// IDsToGGGID translates provided IDs to their GGGID form
+func IDsToGGGID(ids []db.ID, league db.LeagueHeapID,
+	bdb *bolt.DB, t *testing.T) []db.GGGID {
+
+	gggIDs := make([]db.GGGID, 0)
+	err := bdb.View(func(tx *bolt.Tx) error {
+		for _, id := range ids {
+			item, err := db.GetItemByID(id, league, tx)
+			if err != nil {
+				return fmt.Errorf("failed to find item, err=%s", err)
+			}
+			gggIDs = append(gggIDs, item.GGGID)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("failed to find queried item in database")
+	}
+
+	return gggIDs
+}
+
 // Test as searching within a single stash
 func TestItemStoreQuerySingleStash(t *testing.T) {
 
