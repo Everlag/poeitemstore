@@ -114,7 +114,7 @@ func (comp CompressedResponse) Decompress() (*Response, error) {
 		return nil, fmt.Errorf("failed to easyjson unmarshal, err=%s", err)
 	}
 
-	return &resp, nil
+	return &resp, CleanResponse(&resp)
 }
 
 // NewCompressedResponse compresses a Response into compact form

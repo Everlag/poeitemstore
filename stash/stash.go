@@ -203,17 +203,9 @@ func GetStored() (*Response, error) {
 	return RespFromJSON(serial)
 }
 
-// RespFromJSON attempts to deserialize the provided data
-// and return it as a StashResponse
-func RespFromJSON(serial []byte) (*Response, error) {
-	var response Response
-	err := easyjson.Unmarshal(serial, &response)
-	// err = decoder.Decode(&response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
-	}
-
-	// Add additioanl data to items and clean them up
+// CleanResponse adds on Type data as well as ensures the response
+// will satisfy our expectations, as wildly unreasonable as they can be
+func CleanResponse(response *Response) error {
 	for _, stash := range response.Stashes {
 		for i, item := range stash.Items {
 			item.StashID = stash.ID
@@ -229,7 +221,7 @@ func RespFromJSON(serial []byte) (*Response, error) {
 			// Resolve the typeLine on an item to its flavor and root
 			flavor, root, ok := MatchTypeline(item.TypeLine)
 			if !ok {
-				return nil, fmt.Errorf("failed to discover flavor and root for Item, name=%s, id=%s",
+				return fmt.Errorf("failed to discover flavor and root for Item, name=%s, id=%s",
 					item.Name, item.ID)
 			}
 			item.RootType = root
@@ -239,7 +231,20 @@ func RespFromJSON(serial []byte) (*Response, error) {
 		}
 	}
 
-	return &response, nil
+	return nil
+}
+
+// RespFromJSON attempts to deserialize the provided data
+// and return it as a StashResponse
+func RespFromJSON(serial []byte) (*Response, error) {
+	var response Response
+	err := easyjson.Unmarshal(serial, &response)
+	// err = decoder.Decode(&response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
+	}
+
+	return &response, CleanResponse(&response)
 }
 
 // FetchUpdate grabs the update indicated by the changeID.
@@ -265,7 +270,7 @@ func FetchUpdate(changeID string) (*Response, error) {
 			fmt.Errorf("failed to decode stash tab response, err=%s", err)
 	}
 
-	return &response, nil
+	return &response, CleanResponse(&response)
 }
 
 // FetchAndSetStore grabs the latest stash tab api update
