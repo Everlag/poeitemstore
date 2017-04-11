@@ -39,15 +39,16 @@ func (changes *ChangeSet) AddResponse(changeID string,
 	comp CompressedResponse) {
 	changes.Changes = append(changes.Changes, comp)
 	changes.Size += comp.Size
-	changes.ChangeIDToIndex[changeID] = changes.Size - 1
+	changes.ChangeIDToIndex[changeID] = len(changes.Changes) - 1
 }
 
 // Save stores the marshalled ChangeSet's at the provided location
 func (changes *ChangeSet) Save(path string) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND, 0777)
+	f, err := os.OpenFile(path, os.O_CREATE, 0777)
 	if err != nil {
 		return fmt.Errorf("failed to open file, err=%s", err)
 	}
+	defer f.Close()
 	err = msgp.WriteFile(changes, f)
 	if err != nil {
 		return fmt.Errorf("failed to encode and write file, err=%s", err)
@@ -101,6 +102,11 @@ func (comp CompressedResponse) Decompress() (*Response, error) {
 		return nil, fmt.Errorf("failed to create xz reader, err=%s", err)
 	}
 
+	err = uncomp.Verify()
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify xz, err=%s", err)
+	}
+
 	// And unmarshal through the decompressor
 	var resp Response
 	err = easyjson.UnmarshalFromReader(uncomp, &resp)
@@ -123,6 +129,10 @@ func NewCompressedResponse(resp *Response) (*CompressedResponse, error) {
 	_, err = easyjson.MarshalToWriter(resp, comp)
 	if err != nil {
 		return nil, fmt.Errorf("failed easyjson marshal, err=%s", err)
+	}
+
+	if err := comp.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close xz writer, err=%s", err)
 	}
 
 	return &CompressedResponse{
