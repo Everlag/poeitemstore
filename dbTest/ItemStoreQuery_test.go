@@ -55,6 +55,8 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 
 	// Fetch the items so we can grab their GGGIDs
 	foundItems := make([]db.Item, 0)
+	// Also fetch expected items so we can show details if not found
+	expectedItems := make(map[db.GGGID]db.Item, 0)
 	err := bdb.View(func(tx *bolt.Tx) error {
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
@@ -62,6 +64,18 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 				return fmt.Errorf("failed to find item, err=%s", err)
 			}
 			foundItems = append(foundItems, item)
+		}
+
+		expectedIDs, err := db.GetGGGIDTranslations(expected, league, tx)
+		if err != nil {
+			return fmt.Errorf("failed to translate expected ID, err=%s", err)
+		}
+		for _, id := range expectedIDs {
+			item, err := db.GetItemByID(id, league, tx)
+			if err != nil {
+				return fmt.Errorf("failed to find item, err=%s", err)
+			}
+			expectedItems[item.GGGID] = item
 		}
 
 		return nil
@@ -76,25 +90,26 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 	}
 
 	// Check to ensure the item we want is found
-	numberNeeded := len(expected)
 	for _, item := range foundItems {
 		if _, ok := lookup[item.GGGID]; ok {
-			numberNeeded--
+			delete(lookup, item.GGGID)
 		}
 	}
 
-	if numberNeeded != 0 {
+	if len(lookup) != 0 {
 		t.Logf("found items, GGGIDs are")
 		for _, item := range foundItems {
 			t.Logf("	%#x", item.GGGID)
 			t.Logf(item.Inflate(bdb).Name)
 		}
-		t.Logf("expected items, GGGIDs are")
-		for _, id := range expected {
+		t.Logf("--missing items, GGGIDs are--")
+		for id := range lookup {
 			t.Logf("	%#x", id)
+			t.Logf(expectedItems[id].Inflate(bdb).Name)
 		}
-		t.Fatalf("failed to find expected items for query; missing %d items despite %d found",
-			numberNeeded, len(foundItems))
+		t.Logf("failed to find expected items")
+		t.Fatalf("	%d items missing despite %d found",
+			len(lookup), len(foundItems))
 	}
 }
 

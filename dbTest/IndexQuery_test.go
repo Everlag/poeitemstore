@@ -111,19 +111,25 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 			if !ok {
 				prev = mod.Values[0]
 			}
-			if prev > mod.Values[0] {
+			if prev >= mod.Values[0] {
 				minValueMap[string(mod.Template)] = mod.Values[0]
 			}
 		}
 	}
 
 	// Overwrite the search with the new minimum values
+	prevLength := len(search.Mods) // Store old length for later
 	search.Mods = make([]string, 0)
 	search.MinValues = make([]uint16, 0)
 	for mod, min := range minValueMap {
 		search.Mods = append(search.Mods, mod)
 		search.MinValues = append(search.MinValues, min)
 	}
+	if len(search.Mods) != prevLength {
+		t.Fatalf("bad ItemStoreQuery translation: mismatched #mods")
+	}
+
+	t.Logf("Generated ItemStoreQuery:\n %s", search.String())
 
 	// Lookup the root, flavor, and mod
 	strings := []string{search.RootType, search.RootFlavor}
