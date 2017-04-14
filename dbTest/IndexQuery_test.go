@@ -196,24 +196,8 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 			t.Fatalf("failed IndexQuery.Run, err=%s", err)
 		}
 
-		// Inflate items for easier mod checking
-		indexItems := QueryResultsToItems(indexResult, league, bdb, t)
-
-		// Convert to equivalent ItemStoreQuery
-		itemStoreQuery := IndexQueryWithResultsToItemStoreQuery(search,
-			indexItems, bdb, t)
-
-		// Perform the ItemStoreQuery to generate reference
-		itemStoreResults, err := itemStoreQuery.Run(bdb)
-		if err != nil {
-			t.Fatalf("failed ItemStoreQuery.Run, err=%s", err)
-		}
-
-		// Translate :|
-		itemStoreResultsGGG := IDsToGGGID(itemStoreResults, league, bdb, t)
-
-		// Ensure they match
-		CompareQueryResultsToExpected(indexResult, league, itemStoreResultsGGG,
+		// Ensure correctness
+		CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
 			bdb, t)
 
 	}

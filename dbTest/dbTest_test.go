@@ -9,6 +9,7 @@ import (
 
 	"sync"
 
+	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/dbTest/testData"
 	"github.com/Everlag/poeitemstore/stash"
@@ -130,6 +131,33 @@ func CompareStats(expected, got *db.StashUpdateStats, t *testing.T) {
 	if err := expected.Compare(got); err != nil {
 		t.Fatalf("%s\n%s", err, got)
 	}
+}
+
+// CompareIndexQueryResultsToItemStoreEquiv ensures the correctness
+// of results found with an IndexQuery by generating the equivalent
+// ItemStoreQuery and testing against the results found there.
+func CompareIndexQueryResultsToItemStoreEquiv(search cmd.MultiModSearch,
+	indexResult []db.ID, league db.LeagueHeapID,
+	bdb *bolt.DB, t *testing.T) {
+	// Inflate items for easier mod checking
+	indexItems := QueryResultsToItems(indexResult, league, bdb, t)
+
+	// Convert to equivalent ItemStoreQuery
+	itemStoreQuery := IndexQueryWithResultsToItemStoreQuery(search,
+		indexItems, bdb, t)
+
+	// Perform the ItemStoreQuery to generate reference
+	itemStoreResults, err := itemStoreQuery.Run(bdb)
+	if err != nil {
+		t.Fatalf("failed ItemStoreQuery.Run, err=%s", err)
+	}
+
+	// Translate :|
+	itemStoreResultsGGG := IDsToGGGID(itemStoreResults, league, bdb, t)
+
+	// Ensure they match
+	CompareQueryResultsToExpected(indexResult, league, itemStoreResultsGGG,
+		bdb, t)
 }
 
 // TestMain prepares tests to be run
