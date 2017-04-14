@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"time"
-
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/stash"
@@ -126,30 +124,13 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 		search.MinValues = append(search.MinValues, min)
 	}
 	if len(search.Mods) != prevLength {
-		t.Fatalf("bad ItemStoreQuery translation: mismatched #mods")
+		t.Fatalf("bad MultiModSearch translation: mismatched #mods")
 	}
 
-	t.Logf("Generated ItemStoreQuery:\n %s", search.String())
+	t.Logf("Generated MultiModSearch:\n %s", search.String())
 
-	// Lookup the root, flavor, and mod
-	strings := []string{search.RootType, search.RootFlavor}
-	ids, err := db.GetStrings(strings, bdb)
-	if err != nil {
-		t.Fatalf("failed to fetch rootType or RootFlavor id, err=%s\n", err)
-	}
-	modIds, err := db.GetStrings(search.Mods, bdb)
-	if err != nil {
-		t.Fatalf("failed to fetch mod id, err=%s\n", err)
-	}
-
-	// And we we need to fetch the league
-	leagueIDs, err := db.GetLeagues([]string{search.League}, bdb)
-	if err != nil {
-		t.Fatalf("failed to fetch league, err=%s\n", err)
-	}
-
-	return db.NewItemStoreQuery(ids[0], ids[1],
-		modIds, search.MinValues, leagueIDs[0], search.MaxDesired)
+	itemStoreSearch, _ := MultiModSearchToItemStoreQuery(search, bdb, t)
+	return itemStoreSearch
 
 }
 
@@ -188,7 +169,6 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 
 	for i, comp := range set.Changes {
 		id := inverter[i]
-		start := time.Now()
 		resp, err := comp.Decompress()
 		if err != nil {
 			t.Fatalf("failed to decompress stash.Compressed, changeID=%s err=%s",
@@ -236,8 +216,6 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 		CompareQueryResultsToExpected(indexResult, league, itemStoreResultsGGG,
 			bdb, t)
 
-		end := time.Now()
-		t.Logf("%d stashes, took %s", len(resp.Stashes), end.Sub(start))
 	}
 
 }
