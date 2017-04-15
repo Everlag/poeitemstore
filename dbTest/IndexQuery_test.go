@@ -66,6 +66,11 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 	// Setup the minValue map, this will determine the real minimum
 	// values which the ItemStoreQuery will need to find
 	minValueMap := make(map[string]uint16)
+	// Pre-populate with pre-existing values, found items will
+	// always be equal to or higher than the pre-existing
+	for i, mod := range search.Mods {
+		minValueMap[mod] = search.MinValues[i]
+	}
 	for _, item := range prevResults {
 		for _, mod := range item.GetMods() {
 			// Check if we are about this mod
@@ -151,7 +156,7 @@ func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
 }
 
 // Test as searching across multiple stash updates
-func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
+func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
 
 	t.Parallel()
 
@@ -196,5 +201,67 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 			bdb, t)
 		return nil
 	}, bdb, t)
+
+}
+
+// Test as searching across multiple stash updates
+func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
+
+	t.Parallel()
+
+	bdb := NewTempDatabase(t)
+
+	// Define our search up here, it will be constant for all of
+	// our sub-tests
+	search := cmd.MultiModSearch{
+		MaxDesired: 4,
+		RootType:   "Jewelry",
+		RootFlavor: "Amulet",
+		League:     "Legacy",
+		Mods: []string{
+			"#% increased Cold Damage",
+			"+#% to Global Critical Strike Multiplier",
+		},
+		MinValues: []uint16{
+			10,
+			10,
+		},
+	}
+
+	// Fetch the changes we need
+	set := GetChangeSet("testSet - 11 updates.msgp", t)
+	if len(set.Changes) != 11 {
+		t.Fatalf("wrong number of changes, expected 11 got %d",
+			len(set.Changes))
+	}
+
+	// We have to find items that match at least once or else the test
+	// is absolutely useless.
+	foundOnce := false
+
+	RunChangeSet(set, func(id string) error {
+		// Translate the query now, after we are more likely
+		// to have the desired mods available on the StringHeap
+		indexQuery, league := MultiModSearchToIndexQuery(search, bdb, t)
+
+		indexResult, err := indexQuery.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed IndexQuery.Run, err=%s", err)
+		}
+
+		foundOnce = foundOnce || (len(indexResult) > 0)
+		if len(indexResult) > 0 {
+			t.Logf("found %d items", len(indexResult))
+		}
+
+		// Ensure correctness
+		CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
+			bdb, t)
+		return nil
+	}, bdb, t)
+
+	if !foundOnce {
+		t.Fatalf("failed to match any items across all queries")
+	}
 
 }
