@@ -44,20 +44,20 @@ func MultiModSearchToItemStoreQuery(search cmd.MultiModSearch,
 
 }
 
-// CompareQueryResultsToExpected does exactly what it says.
+// compareQueryResultsToExpected does exactly what it says.
 //
 // It performs translation of provided ids to GGGIDs so desired query results
 // can be determined before hand and the GGGID can be
 // used to specify specific items
-func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
+func compareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 	expected []db.GGGID,
-	bdb *bolt.DB, t *testing.T) {
+	bdb *bolt.DB, t *testing.T) (missing int, found int, err error) {
 
 	// Fetch the items so we can grab their GGGIDs
 	foundItems := make([]db.Item, 0)
 	// Also fetch expected items so we can show details if not found
 	expectedItems := make(map[db.GGGID]db.Item, 0)
-	err := bdb.View(func(tx *bolt.Tx) error {
+	err = bdb.View(func(tx *bolt.Tx) error {
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
@@ -81,7 +81,9 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 		return nil
 	})
 	if err != nil {
-		t.Fatalf("failed to find queried item in database")
+		err = fmt.Errorf("failed to find queried item in database, err=%s",
+			err)
+		return
 	}
 
 	lookup := make(map[db.GGGID]struct{})
@@ -108,8 +110,29 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 			t.Logf(expectedItems[id].Inflate(bdb).Name)
 		}
 		t.Logf("failed to find expected items")
-		t.Fatalf("	%d items missing despite %d found",
-			len(lookup), len(foundItems))
+		missing = len(lookup)
+		found = len(foundItems)
+		err = fmt.Errorf("%d items missing despite %d found",
+			missing, found)
+		return
+	}
+
+	found = len(expected)
+	return
+}
+
+// CompareQueryResultsToExpected does exactly what it says.
+//
+// This is just a simple wrapper for compareQueryResultsToExpected
+// which fails if we encounter a failure
+func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
+	expected []db.GGGID,
+	bdb *bolt.DB, t *testing.T) {
+
+	_, _, err := compareQueryResultsToExpected(ids, league, expected,
+		bdb, t)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
