@@ -185,55 +185,17 @@ var QueryAmuletColdCritMulti = cmd.MultiModSearch{
 	},
 }
 
-// Test as searching across multiple stash updates
-func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
+// testIndexQueryAgainstChangeSet ensures a given MultiModSearch
+// is valid for every change in the ChangeSet located at path
+func testIndexQueryAgainstChangeSet(search cmd.MultiModSearch, path string,
+	t *testing.T) {
 
 	t.Parallel()
 
 	bdb := NewTempDatabase(t)
 
-	// Define our search up here, it will be constant for all of
-	// our sub-tests
-	search := QueryBootsMovespeedFireResist.Clone()
-
 	// Fetch the changes we need
-	set := GetChangeSet("testSet - 11 updates.msgp", t)
-	if len(set.Changes) != 11 {
-		t.Fatalf("wrong number of changes, expected 11 got %d",
-			len(set.Changes))
-	}
-
-	RunChangeSet(set, func(id string) error {
-		// Translate the query now, after we are more likely
-		// to have the desired mods available on the StringHeap
-		indexQuery, league := MultiModSearchToIndexQuery(search, bdb, t)
-
-		indexResult, err := indexQuery.Run(bdb)
-		if err != nil {
-			t.Fatalf("failed IndexQuery.Run, err=%s", err)
-		}
-
-		// Ensure correctness
-		CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
-			bdb, t)
-		return nil
-	}, bdb, t)
-
-}
-
-// Test as searching across multiple stash updates
-func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
-
-	t.Parallel()
-
-	bdb := NewTempDatabase(t)
-
-	// Define our search up here, it will be constant for all of
-	// our sub-tests
-	search := QueryAmuletColdCritMulti.Clone()
-
-	// Fetch the changes we need
-	set := GetChangeSet("testSet - 11 updates.msgp", t)
+	set := GetChangeSet(path, t)
 	if len(set.Changes) != 11 {
 		t.Fatalf("wrong number of changes, expected 11 got %d",
 			len(set.Changes))
@@ -267,5 +229,16 @@ func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
 	if !foundOnce {
 		t.Fatalf("failed to match any items across all queries")
 	}
+}
 
+// Test as searching across multiple stash updates
+func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
+	testIndexQueryAgainstChangeSet(QueryBootsMovespeedFireResist.Clone(),
+		"testSet - 11 updates.msgp", t)
+}
+
+// Test as searching across multiple stash updates
+func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
+	testIndexQueryAgainstChangeSet(QueryAmuletColdCritMulti.Clone(),
+		"testSet - 11 updates.msgp", t)
 }
