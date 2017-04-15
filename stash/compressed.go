@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/golang/snappy"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -95,9 +96,10 @@ func (comp CompressedResponse) Decompress() (*Response, error) {
 
 	// Stream the read
 	buf := bytes.NewBuffer(comp.Content)
+	decomp := snappy.NewReader(buf)
 
 	var resp Response
-	err := msgp.Decode(buf, &resp)
+	err := msgp.Decode(decomp, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to msgp decode, err=%s", err)
 	}
@@ -110,7 +112,9 @@ func (comp CompressedResponse) Decompress() (*Response, error) {
 func NewCompressedResponse(resp *Response) (*CompressedResponse, error) {
 	var buf bytes.Buffer
 
-	msgpWriter := msgp.NewWriter(&buf)
+	comp := snappy.NewBufferedWriter(&buf)
+
+	msgpWriter := msgp.NewWriter(comp)
 	err := resp.EncodeMsg(msgpWriter)
 	if err != nil {
 		return nil, fmt.Errorf("failed msgp marshal, err=%s", err)
@@ -118,6 +122,10 @@ func NewCompressedResponse(resp *Response) (*CompressedResponse, error) {
 
 	if err := msgpWriter.Flush(); err != nil {
 		return nil, fmt.Errorf("failed to flush msgp, err=%s", err)
+	}
+
+	if err := comp.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close snappy compressor, err=%s", err)
 	}
 
 	return &CompressedResponse{
