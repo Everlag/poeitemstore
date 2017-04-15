@@ -1,6 +1,9 @@
 package stash
 
+// JSON for GGG responses
+// and msgpack for faster testing setups
 //go:generate easyjson $GOFILE
+//go:generate msgp
 
 import (
 	"encoding/json"
@@ -221,8 +224,10 @@ func CleanResponse(response *Response) error {
 			// Resolve the typeLine on an item to its flavor and root
 			flavor, root, ok := MatchTypeline(item.TypeLine)
 			if !ok {
-				return fmt.Errorf("failed to discover flavor and root for Item, name=%s, id=%s",
-					item.Name, item.ID)
+				fmt.Println(stash.ID)
+				fmt.Println(item)
+				return fmt.Errorf("failed to discover flavor and root for Item, name=%s, typeline=%s, id=%s",
+					item.Name, item.TypeLine, item.ID)
 			}
 			item.RootType = root
 			item.RootFlavor = flavor

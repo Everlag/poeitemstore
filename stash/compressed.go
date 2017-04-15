@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mailru/easyjson"
 	"github.com/tinylib/msgp/msgp"
-	"github.com/ulikunitz/xz"
 )
 
 // ChangeSet represents the number
@@ -95,23 +93,13 @@ type CompressedResponse struct {
 // Decompress decompresses the CompressedResponse.
 func (comp CompressedResponse) Decompress() (*Response, error) {
 
-	// Setup decompression reader
+	// Stream the read
 	buf := bytes.NewBuffer(comp.Content)
-	uncomp, err := xz.NewReader(buf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create xz reader, err=%s", err)
-	}
 
-	err = uncomp.Verify()
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify xz, err=%s", err)
-	}
-
-	// And unmarshal through the decompressor
 	var resp Response
-	err = easyjson.UnmarshalFromReader(uncomp, &resp)
+	err := msgp.Decode(buf, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to easyjson unmarshal, err=%s", err)
+		return nil, fmt.Errorf("failed to msgp decode, err=%s", err)
 	}
 
 	return &resp, CleanResponse(&resp)
@@ -121,18 +109,15 @@ func (comp CompressedResponse) Decompress() (*Response, error) {
 // and returns the result
 func NewCompressedResponse(resp *Response) (*CompressedResponse, error) {
 	var buf bytes.Buffer
-	comp, err := xz.NewWriter(&buf)
+
+	msgpWriter := msgp.NewWriter(&buf)
+	err := resp.EncodeMsg(msgpWriter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create xz writer, err=%s", err)
+		return nil, fmt.Errorf("failed msgp marshal, err=%s", err)
 	}
 
-	_, err = easyjson.MarshalToWriter(resp, comp)
-	if err != nil {
-		return nil, fmt.Errorf("failed easyjson marshal, err=%s", err)
-	}
-
-	if err := comp.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close xz writer, err=%s", err)
+	if err := msgpWriter.Flush(); err != nil {
+		return nil, fmt.Errorf("failed to flush msgp, err=%s", err)
 	}
 
 	return &CompressedResponse{
