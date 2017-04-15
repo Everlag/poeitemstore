@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Everlag/poeitemstore/stash"
 )
 
 // MultiModSearch specifies a search to perform for items
@@ -36,6 +38,46 @@ League: %s, MaxDesired: %d
 %s`,
 		search.RootType, search.RootFlavor,
 		search.League, search.MaxDesired, modString)
+}
+
+// Satisfies determines if a provided set of Items is acceptable
+// under the query
+func (search *MultiModSearch) Satisfies(result []stash.Item) bool {
+
+	// Invalid search means we panic
+	if len(search.Mods) != len(search.MinValues) {
+		panic("invalid MultiModSearch, mismatched lengths of Mods to MinValues")
+	}
+
+	// Easy lookup for minimum values
+	required := make(map[string]uint16)
+	for i, mod := range search.Mods {
+		required[mod] = search.MinValues[i]
+	}
+
+	requiredSatisfiedMods := len(search.Mods)
+
+	// Ensure each item has mods to satisfy this query.
+	for _, item := range result {
+		modsSatisfied := 0
+
+		mods := item.GetMods()
+		for _, mod := range mods {
+			min, ok := required[string(mod.Template)]
+			if !ok {
+				continue
+			}
+			// TODO: change the way we handle multi-value mods
+			if min <= mod.Values[0] {
+				modsSatisfied++
+			}
+		}
+		if modsSatisfied < requiredSatisfiedMods {
+			return false
+		}
+	}
+
+	return true
 }
 
 // FetchMultiModSearch returns a MultiModSearch deserialized
