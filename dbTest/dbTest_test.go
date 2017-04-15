@@ -135,6 +135,35 @@ func GetChangeSetInverter(set stash.ChangeSet) map[int]string {
 	return inverter
 }
 
+// QueryResultsToItems converts the provided IDs to their
+// inflated stash forms
+func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
+	bdb *bolt.DB, t *testing.T) []stash.Item {
+
+	// Fetch the items so we can grab their GGGIDs
+	compact := make([]db.Item, 0)
+	err := bdb.View(func(tx *bolt.Tx) error {
+		for _, id := range ids {
+			item, err := db.GetItemByID(id, league, tx)
+			if err != nil {
+				return fmt.Errorf("failed to find item, err=%s", err)
+			}
+			compact = append(compact, item)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("failed to find queried item in database")
+	}
+	foundItems := make([]stash.Item, 0)
+	for _, tiny := range compact {
+		foundItems = append(foundItems, tiny.Inflate(bdb))
+	}
+
+	return foundItems
+}
+
 // CompareStats tests the provided stats and fails if they are mismatched
 func CompareStats(expected, got *db.StashUpdateStats, t *testing.T) {
 	if err := expected.Compare(got); err != nil {

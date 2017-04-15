@@ -1,7 +1,6 @@
 package dbTest
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/Everlag/poeitemstore/cmd"
@@ -40,35 +39,6 @@ func MultiModSearchToIndexQuery(search cmd.MultiModSearch,
 	return db.NewIndexQuery(ids[0], ids[1],
 		modIds, search.MinValues, leagueIDs[0], search.MaxDesired), leagueIDs[0]
 
-}
-
-// QueryResultsToItems converts the provided IDs to their
-// inflated stash forms
-func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
-	bdb *bolt.DB, t *testing.T) []stash.Item {
-
-	// Fetch the items so we can grab their GGGIDs
-	compact := make([]db.Item, 0)
-	err := bdb.View(func(tx *bolt.Tx) error {
-		for _, id := range ids {
-			item, err := db.GetItemByID(id, league, tx)
-			if err != nil {
-				return fmt.Errorf("failed to find item, err=%s", err)
-			}
-			compact = append(compact, item)
-		}
-
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("failed to find queried item in database")
-	}
-	foundItems := make([]stash.Item, 0)
-	for _, tiny := range compact {
-		foundItems = append(foundItems, tiny.Inflate(bdb))
-	}
-
-	return foundItems
 }
 
 // IndexQueryWithResultsToItemStoreQuery converts a MultiModSearch
@@ -134,10 +104,56 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 
 }
 
+// ChangeSetUse is the callback given to RunChangeSet
+// to make traversing a ChangeSet less awful.
+//
+// ChangeSetUse is expected to be an anonymous function
+// accessing the database through its defining scope.
+type ChangeSetUse func(id string) error
+
+// RunChangeSet steps through a given ChangeSet, adding changes
+// to the provided DB then calling cb to do some work
+// on the database.
+//
+// cb will we called for each entry in the ChangeSet
+func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
+	bdb *bolt.DB, t *testing.T) {
+
+	// Generate a mapping of change to id we'll need
+	inverter := GetChangeSetInverter(set)
+
+	for i, comp := range set.Changes {
+		// Decompress
+		id := inverter[i]
+		resp, err := comp.Decompress()
+		if err != nil {
+			t.Fatalf("failed to decompress stash.Compressed, changeID=%s err=%s",
+				id, err)
+		}
+
+		t.Logf("processing changeID=%s", id)
+
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		if err != nil {
+			t.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
+		}
+
+		_, err = db.AddStashes(cStashes, cItems, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		if err := cb(id); err != nil {
+			t.Fatalf("failed to cb in RunChangeSet, err=%s", err)
+		}
+	}
+
+}
+
 // Test as searching across multiple stash updates
 func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 
-	// t.Parallel()
+	t.Parallel()
 
 	bdb := NewTempDatabase(t)
 
@@ -165,28 +181,7 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 			len(set.Changes))
 	}
 
-	inverter := GetChangeSetInverter(set)
-
-	for i, comp := range set.Changes {
-		id := inverter[i]
-		resp, err := comp.Decompress()
-		if err != nil {
-			t.Fatalf("failed to decompress stash.Compressed, changeID=%s err=%s",
-				id, err)
-		}
-
-		t.Logf("processing changeID=%s", id)
-
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
-		if err != nil {
-			t.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
-		}
-
-		_, err = db.AddStashes(cStashes, cItems, bdb)
-		if err != nil {
-			t.Fatalf("failed to AddStashes, err=%s", err)
-		}
-
+	RunChangeSet(set, func(id string) error {
 		// Translate the query now, after we are more likely
 		// to have the desired mods available on the StringHeap
 		indexQuery, league := MultiModSearchToIndexQuery(search, bdb, t)
@@ -199,7 +194,7 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 		// Ensure correctness
 		CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
 			bdb, t)
-
-	}
+		return nil
+	}, bdb, t)
 
 }
