@@ -174,6 +174,10 @@ func CompareStats(expected, got *db.StashUpdateStats, t testing.TB) {
 // CompareIndexQueryResultsToItemStoreEquiv ensures the correctness
 // of results found with an IndexQuery by generating the equivalent
 // ItemStoreQuery and testing against the results found there.
+//
+// NOTE: given the differing semantics between an IndexQuery
+// and an ItemStoreQuery which cannot be completely mitigated by translation,
+// this is a relaxed rather than absolute comparison.
 func CompareIndexQueryResultsToItemStoreEquiv(search cmd.MultiModSearch,
 	indexResult []db.ID, league db.LeagueHeapID,
 	bdb *bolt.DB, t *testing.T) {
@@ -194,8 +198,23 @@ func CompareIndexQueryResultsToItemStoreEquiv(search cmd.MultiModSearch,
 	itemStoreResultsGGG := IDsToGGGID(itemStoreResults, league, bdb, t)
 
 	// Ensure they match
-	CompareQueryResultsToExpected(indexResult, league, itemStoreResultsGGG,
-		bdb, t)
+	missing, found, err := compareQueryResultsToExpected(indexResult, league,
+		itemStoreResultsGGG, bdb, t)
+	// Failure for exact match is handled leniently
+	if err != nil {
+		// We require at least once matching item between them
+		if found < 1 {
+			t.Fatal(err)
+		} else {
+			t.Logf("comparison allowing %d of %d items to be missing",
+				missing, found)
+		}
+
+		// All items must at least satisfy the query to be comfortable
+		if !search.Satisfies(indexItems) {
+			t.Fatalf("indexResults do not satisfy MultiModSearch")
+		}
+	}
 }
 
 // TestMain prepares tests to be run
@@ -221,8 +240,6 @@ func TestApples(t *testing.T) {
 
 	db := NewTempDatabase(t)
 	fmt.Printf("I have a database, neat!, db=%s\n", db)
-
-	t.Run("", func(t *testing.T) {})
 
 	t.Run("", func(t *testing.T) {})
 
