@@ -3,7 +3,6 @@ package dbTest
 import (
 	"testing"
 
-	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 )
 
@@ -21,20 +20,7 @@ func BenchmarkSingleIndexQuery(b *testing.B) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Armour",
-		RootFlavor: "Boots",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Movement Speed",
-			"+#% to Fire Resistance",
-		},
-		MinValues: []uint16{
-			24,
-			27,
-		},
-	}
+	search := QueryBootsMovespeedFireResist
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", b)

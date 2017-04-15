@@ -159,6 +159,51 @@ func IDsToGGGID(ids []db.ID, league db.LeagueHeapID,
 	return gggIDs
 }
 
+var QueryRingStrengthIntES = cmd.MultiModSearch{
+	MaxDesired: 2,
+	RootType:   "Jewelry",
+	RootFlavor: "Ring",
+	League:     "Legacy",
+	Mods: []string{
+		"+# to Strength",
+		"+# to Intelligence",
+		"+# to maximum Energy Shield",
+	},
+	MinValues: []uint16{
+		20,
+		20,
+		10,
+	},
+}
+
+var QueryQuiverCritChance = cmd.MultiModSearch{
+	MaxDesired: 4,
+	RootType:   "Armour",
+	RootFlavor: "Quiver",
+	League:     "Legacy",
+	Mods: []string{
+		"#% increased Global Critical Strike Chance",
+	},
+	MinValues: []uint16{
+		11,
+	},
+}
+
+var QueryHelmetRecoveryES = cmd.MultiModSearch{
+	MaxDesired: 4,
+	RootType:   "Armour",
+	RootFlavor: "Helmet",
+	League:     "Legacy",
+	Mods: []string{
+		"#% increased Stun and Block Recovery",
+		"#% increased Energy Shield",
+	},
+	MinValues: []uint16{
+		10,
+		100,
+	},
+}
+
 // Test as searching within a single stash
 func TestItemStoreQuerySingleStash(t *testing.T) {
 
@@ -168,22 +213,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 2,
-		RootType:   "Jewelry",
-		RootFlavor: "Ring",
-		League:     "Legacy",
-		Mods: []string{
-			"+# to Strength",
-			"+# to Intelligence",
-			"+# to maximum Energy Shield",
-		},
-		MinValues: []uint16{
-			20,
-			20,
-			10,
-		},
-	}
+	search := QueryRingStrengthIntES
 
 	// Keep the items we expect here.
 	//
@@ -251,6 +281,9 @@ func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
+	//
+	// This is not factored out to global scope
+	// as its an impossible to satisfy query.
 	search := cmd.MultiModSearch{
 		MaxDesired: 2,
 		RootType:   "Jewelry",
@@ -306,18 +339,7 @@ func TestItemStoreQuery11StashesSingleMod(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Armour",
-		RootFlavor: "Quiver",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Global Critical Strike Chance",
-		},
-		MinValues: []uint16{
-			11,
-		},
-	}
+	search := QueryQuiverCritChance
 
 	// Keep the items we expect here.
 	//
@@ -386,20 +408,7 @@ func TestItemStoreQuery11StashesMultiModA(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Armour",
-		RootFlavor: "Boots",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Movement Speed",
-			"+#% to Fire Resistance",
-		},
-		MinValues: []uint16{
-			24,
-			27,
-		},
-	}
+	search := QueryBootsMovespeedFireResist
 
 	// Keep the items we expect here.
 	//
@@ -468,20 +477,7 @@ func TestItemStoreQuery11StashesMultiModB(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Armour",
-		RootFlavor: "Helmet",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Stun and Block Recovery",
-			"#% increased Energy Shield",
-		},
-		MinValues: []uint16{
-			10,
-			100,
-		},
-	}
+	search := QueryHelmetRecoveryES
 
 	// Keep the items we expect here.
 	//

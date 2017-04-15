@@ -155,6 +155,36 @@ func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
 
 }
 
+var QueryBootsMovespeedFireResist = cmd.MultiModSearch{
+	MaxDesired: 4,
+	RootType:   "Armour",
+	RootFlavor: "Boots",
+	League:     "Legacy",
+	Mods: []string{
+		"#% increased Movement Speed",
+		"+#% to Fire Resistance",
+	},
+	MinValues: []uint16{
+		24,
+		27,
+	},
+}
+
+var QueryAmuletColdCritMulti = cmd.MultiModSearch{
+	MaxDesired: 4,
+	RootType:   "Jewelry",
+	RootFlavor: "Amulet",
+	League:     "Legacy",
+	Mods: []string{
+		"#% increased Cold Damage",
+		"+#% to Global Critical Strike Multiplier",
+	},
+	MinValues: []uint16{
+		10,
+		10,
+	},
+}
+
 // Test as searching across multiple stash updates
 func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
 
@@ -164,20 +194,7 @@ func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Armour",
-		RootFlavor: "Boots",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Movement Speed",
-			"+#% to Fire Resistance",
-		},
-		MinValues: []uint16{
-			24,
-			27,
-		},
-	}
+	search := QueryBootsMovespeedFireResist
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", t)
@@ -213,20 +230,7 @@ func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := cmd.MultiModSearch{
-		MaxDesired: 4,
-		RootType:   "Jewelry",
-		RootFlavor: "Amulet",
-		League:     "Legacy",
-		Mods: []string{
-			"#% increased Cold Damage",
-			"+#% to Global Critical Strike Multiplier",
-		},
-		MinValues: []uint16{
-			10,
-			10,
-		},
-	}
+	search := QueryAmuletColdCritMulti
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", t)
