@@ -159,7 +159,7 @@ func TestIndexQuery48UpdatesMovespeedFireResist(t *testing.T) {
 	}
 
 	// Fetch the changes we need
-	set := GetChangeSet("data/testSet - 11 updates.msgp", t)
+	set := GetChangeSet("testSet - 11 updates.msgp", t)
 	if len(set.Changes) != 11 {
 		t.Fatalf("wrong number of changes, expected 11 got %d",
 			len(set.Changes))

@@ -9,9 +9,10 @@ import (
 
 	"sync"
 
+	"path/filepath"
+
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
-	"github.com/Everlag/poeitemstore/dbTest/testData"
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 )
@@ -71,6 +72,14 @@ func NewTempDatabase(t *testing.T) *bolt.DB {
 	return db
 }
 
+// GetTestData returns the content of a file in testdata
+//
+// Provided path is package-relative,
+// ie 'thing.json' fetches 'testdata/thing.json'
+func GetTestData(path string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join("testdata", path))
+}
+
 // GetTestStashUpdate returns the []db.Stash kept in the dbTest directory
 // and accessible using Asset() from go-bindata.
 //
@@ -79,7 +88,7 @@ func NewTempDatabase(t *testing.T) *bolt.DB {
 // directly used in db.AddStashes.
 func GetTestStashUpdate(path string, bdb *bolt.DB,
 	t *testing.T) ([]db.Stash, [][]db.Item) {
-	raw, err := testData.Asset(path)
+	raw, err := GetTestData(path)
 	if err != nil {
 		t.Fatalf("failed to fetch '%s', err=%s", path, err)
 	}
@@ -102,7 +111,7 @@ func GetTestStashUpdate(path string, bdb *bolt.DB,
 // which is accessible using Assets() from go-bindata
 func GetChangeSet(path string, t *testing.T) stash.ChangeSet {
 
-	raw, err := testData.Asset(path)
+	raw, err := GetTestData(path)
 	if err != nil {
 		t.Fatalf("failed to fetch '%s', err=%s", path, err)
 	}

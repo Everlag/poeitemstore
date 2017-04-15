@@ -172,7 +172,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/singleStash.json",
+		stashes, items := GetTestStashUpdate("singleStash.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -197,7 +197,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Test to ensure the added item can be found
 	t.Run("3ItemsAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/singleStash - 3ItemsAdded.json",
+		stashes, items := GetTestStashUpdate("singleStash - 3ItemsAdded.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -251,7 +251,7 @@ func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/singleStash.json",
+		stashes, items := GetTestStashUpdate("singleStash.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -307,7 +307,7 @@ func TestItemStoreQuery11StashesSingleMod(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes.json",
+		stashes, items := GetTestStashUpdate("11Stashes.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -333,7 +333,7 @@ func TestItemStoreQuery11StashesSingleMod(t *testing.T) {
 
 	// Test to ensure the added item can be found
 	t.Run("3StashesAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes - 3StashesAddedWith92Items.json",
+		stashes, items := GetTestStashUpdate("11Stashes - 3StashesAddedWith92Items.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -390,7 +390,7 @@ func TestItemStoreQuery11StashesMultiModA(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes.json",
+		stashes, items := GetTestStashUpdate("11Stashes.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -415,7 +415,7 @@ func TestItemStoreQuery11StashesMultiModA(t *testing.T) {
 
 	// Test to ensure the added item can be found
 	t.Run("3StashesAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes - 3StashesAddedWith92Items.json",
+		stashes, items := GetTestStashUpdate("11Stashes - 3StashesAddedWith92Items.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -470,7 +470,7 @@ func TestItemStoreQuery11StashesMultiModB(t *testing.T) {
 
 	// Test to ensure a good baseline
 	t.Run("Baseline", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes.json",
+		stashes, items := GetTestStashUpdate("11Stashes.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
@@ -495,7 +495,7 @@ func TestItemStoreQuery11StashesMultiModB(t *testing.T) {
 
 	// Test to ensure the added item can be found
 	t.Run("3StashesAdded", func(t *testing.T) {
-		stashes, items := GetTestStashUpdate("data/11Stashes - 3StashesAddedWith92Items.json",
+		stashes, items := GetTestStashUpdate("11Stashes - 3StashesAddedWith92Items.json",
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
