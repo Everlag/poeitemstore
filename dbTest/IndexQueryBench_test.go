@@ -18,10 +18,6 @@ func BenchmarkSingleIndexQuery(b *testing.B) {
 
 	bdb := NewTempDatabase(b)
 
-	// Define our search up here, it will be constant for all of
-	// our sub-tests
-	search := QueryBootsMovespeedFireResist.Clone()
-
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", b)
 	if len(set.Changes) != 11 {
@@ -35,15 +31,22 @@ func BenchmarkSingleIndexQuery(b *testing.B) {
 		return nil
 	}, bdb, b)
 
-	// Translate the query now, after we are more likely
-	// to have the desired mods available on the StringHeap
-	indexQuery, _ := MultiModSearchToIndexQuery(search, bdb, b)
-
 	b.ResetTimer()
 
 	var err error
 
 	for i := 0; i < b.N; i++ {
+
+		// Define our search here
+		search := QueryBootsMovespeedFireResist.Clone()
+
+		// Translate the query now, after we are more likely
+		// to have the desired mods available on the StringHeap.
+		//
+		// This is done within the benchmarking time as it must be done
+		// for any query
+		indexQuery, _ := MultiModSearchToIndexQuery(search, bdb, b)
+
 		benchQueryResult, err = indexQuery.Run(bdb)
 		if err != nil {
 			b.Fatalf("failed IndexQuery.Run, err=%s", err)
