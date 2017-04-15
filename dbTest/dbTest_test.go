@@ -52,7 +52,7 @@ var envSync sync.Mutex
 
 // NewTempDatabase prepares a fresh boltdb database for testing
 // which will automatically be cleaned up after testing
-func NewTempDatabase(t *testing.T) *bolt.DB {
+func NewTempDatabase(t testing.TB) *bolt.DB {
 
 	f, err := ioutil.TempFile("", "gothingTest")
 	if err != nil {
@@ -109,7 +109,7 @@ func GetTestStashUpdate(path string, bdb *bolt.DB,
 
 // GetChangeSet returns a stash.ChangeSet serialized at the provided path
 // which is accessible using Assets() from go-bindata
-func GetChangeSet(path string, t *testing.T) stash.ChangeSet {
+func GetChangeSet(path string, t testing.TB) stash.ChangeSet {
 
 	raw, err := GetTestData(path)
 	if err != nil {
@@ -138,7 +138,7 @@ func GetChangeSetInverter(set stash.ChangeSet) map[int]string {
 // QueryResultsToItems converts the provided IDs to their
 // inflated stash forms
 func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
-	bdb *bolt.DB, t *testing.T) []stash.Item {
+	bdb *bolt.DB, t testing.TB) []stash.Item {
 
 	// Fetch the items so we can grab their GGGIDs
 	compact := make([]db.Item, 0)
@@ -165,7 +165,7 @@ func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
 }
 
 // CompareStats tests the provided stats and fails if they are mismatched
-func CompareStats(expected, got *db.StashUpdateStats, t *testing.T) {
+func CompareStats(expected, got *db.StashUpdateStats, t testing.TB) {
 	if err := expected.Compare(got); err != nil {
 		t.Fatalf("%s\n%s", err, got)
 	}

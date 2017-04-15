@@ -16,7 +16,7 @@ import (
 //
 // Yes, I did steal this right out of commands...
 func MultiModSearchToItemStoreQuery(search cmd.MultiModSearch,
-	bdb *bolt.DB, t *testing.T) (db.ItemStoreQuery, db.LeagueHeapID) {
+	bdb *bolt.DB, t testing.TB) (db.ItemStoreQuery, db.LeagueHeapID) {
 
 	if len(search.MinValues) != len(search.Mods) {
 		t.Fatalf("each mod must have a minvalue")
@@ -115,7 +115,7 @@ func CompareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 
 // IDsToGGGID translates provided IDs to their GGGID form
 func IDsToGGGID(ids []db.ID, league db.LeagueHeapID,
-	bdb *bolt.DB, t *testing.T) []db.GGGID {
+	bdb *bolt.DB, t testing.TB) []db.GGGID {
 
 	gggIDs := make([]db.GGGID, 0)
 	err := bdb.View(func(tx *bolt.Tx) error {

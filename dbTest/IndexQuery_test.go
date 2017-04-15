@@ -13,7 +13,7 @@ import (
 // into an IndexQuery. It also returns the league because
 // you usually need that...
 func MultiModSearchToIndexQuery(search cmd.MultiModSearch,
-	bdb *bolt.DB, t *testing.T) (db.IndexQuery, db.LeagueHeapID) {
+	bdb *bolt.DB, t testing.TB) (db.IndexQuery, db.LeagueHeapID) {
 
 	if len(search.MinValues) != len(search.Mods) {
 		t.Fatalf("each mod must have a minvalue")
@@ -50,7 +50,7 @@ func MultiModSearchToIndexQuery(search cmd.MultiModSearch,
 // with minimum values.
 func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 	prevResults []stash.Item,
-	bdb *bolt.DB, t *testing.T) db.ItemStoreQuery {
+	bdb *bolt.DB, t testing.TB) db.ItemStoreQuery {
 
 	if len(search.MinValues) != len(search.Mods) {
 		t.Fatalf("each mod must have a minvalue")
@@ -117,7 +117,7 @@ type ChangeSetUse func(id string) error
 //
 // cb will we called for each entry in the ChangeSet
 func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
-	bdb *bolt.DB, t *testing.T) {
+	bdb *bolt.DB, t testing.TB) {
 
 	// Generate a mapping of change to id we'll need
 	inverter := GetChangeSetInverter(set)
