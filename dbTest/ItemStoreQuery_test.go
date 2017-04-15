@@ -213,7 +213,7 @@ func TestItemStoreQuerySingleStash(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryRingStrengthIntES
+	search := QueryRingStrengthIntES.Clone()
 
 	// Keep the items we expect here.
 	//
@@ -339,7 +339,7 @@ func TestItemStoreQuery11StashesSingleMod(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryQuiverCritChance
+	search := QueryQuiverCritChance.Clone()
 
 	// Keep the items we expect here.
 	//
@@ -408,7 +408,7 @@ func TestItemStoreQuery11StashesMultiModA(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryBootsMovespeedFireResist
+	search := QueryBootsMovespeedFireResist.Clone()
 
 	// Keep the items we expect here.
 	//
@@ -477,7 +477,7 @@ func TestItemStoreQuery11StashesMultiModB(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryHelmetRecoveryES
+	search := QueryHelmetRecoveryES.Clone()
 
 	// Keep the items we expect here.
 	//

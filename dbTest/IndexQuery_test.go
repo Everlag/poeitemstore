@@ -194,7 +194,7 @@ func TestIndexQuery11UpdatesMovespeedFireResist(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryBootsMovespeedFireResist
+	search := QueryBootsMovespeedFireResist.Clone()
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", t)
@@ -230,7 +230,7 @@ func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryAmuletColdCritMulti
+	search := QueryAmuletColdCritMulti.Clone()
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", t)

@@ -20,7 +20,7 @@ func BenchmarkSingleIndexQuery(b *testing.B) {
 
 	// Define our search up here, it will be constant for all of
 	// our sub-tests
-	search := QueryBootsMovespeedFireResist
+	search := QueryBootsMovespeedFireResist.Clone()
 
 	// Fetch the changes we need
 	set := GetChangeSet("testSet - 11 updates.msgp", b)

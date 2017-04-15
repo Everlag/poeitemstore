@@ -40,6 +40,21 @@ League: %s, MaxDesired: %d
 		search.League, search.MaxDesired, modString)
 }
 
+// Clone copies the MultiModSearch to a copy that can be mutated
+// without effecting the original
+func (search MultiModSearch) Clone() MultiModSearch {
+	// Shallow copy for primitive fields
+	clone := search
+
+	// Deep copy of non-primitive fields
+	clone.Mods = make([]string, len(search.Mods))
+	copy(clone.Mods, search.Mods)
+	clone.MinValues = make([]uint16, len(search.MinValues))
+	copy(clone.MinValues, search.MinValues)
+
+	return clone
+}
+
 // Satisfies determines if a provided set of Items is acceptable
 // under the query
 func (search *MultiModSearch) Satisfies(result []stash.Item) bool {
