@@ -66,11 +66,6 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 	// Setup the minValue map, this will determine the real minimum
 	// values which the ItemStoreQuery will need to find
 	minValueMap := make(map[string]uint16)
-	// Pre-populate with pre-existing values, found items will
-	// always be equal to or higher than the pre-existing
-	for i, mod := range search.Mods {
-		minValueMap[mod] = search.MinValues[i]
-	}
 	for _, item := range prevResults {
 		for _, mod := range item.GetMods() {
 			// Check if we are about this mod
@@ -87,6 +82,13 @@ func IndexQueryWithResultsToItemStoreQuery(search cmd.MultiModSearch,
 			if prev >= mod.Values[0] {
 				minValueMap[string(mod.Template)] = mod.Values[0]
 			}
+		}
+	}
+	// Populate any non-present mods with pre-existing values, found items will
+	// always be equal to or higher than the pre-existing
+	for i, mod := range search.Mods {
+		if _, ok := minValueMap[mod]; !ok {
+			minValueMap[mod] = search.MinValues[i]
 		}
 	}
 
