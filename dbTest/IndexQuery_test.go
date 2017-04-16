@@ -138,7 +138,11 @@ func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
 				id, err)
 		}
 
-		t.Logf("processing changeID=%s", id)
+		// Display status only during tests
+		_, ok := t.(*testing.T)
+		if ok {
+			t.Logf("processing changeID=%s", id)
+		}
 
 		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
 		if err != nil {
