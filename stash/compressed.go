@@ -55,6 +55,14 @@ func (changes *ChangeSet) Save(path string) error {
 	return nil
 }
 
+// GetFirstChange returns the first Change in the set.
+func (changes *ChangeSet) GetFirstChange() (*CompressedResponse, error) {
+	if len(changes.Changes) == 0 {
+		return nil, fmt.Errorf("failed to get change")
+	}
+	return &changes.Changes[0], nil
+}
+
 // GetCompByChangeID returns the CompressedResponse associated with
 // a given changeID. Follows the _, ok pattern ala maps if not found
 func (changes *ChangeSet) GetCompByChangeID(changeID string) (*CompressedResponse,
