@@ -201,111 +201,35 @@ func (item Item) Inflate(db *bolt.DB) stash.Item {
 func StashItemsToCompact(items []stash.Item, when Timestamp,
 	db *bolt.DB) ([]Item, error) {
 
-	// Extract everything we need to put onto the string heap
-	names := make([]string, len(items))
-	typeLines := make([]string, len(items))
-	notes := make([]string, len(items))
+	// Translate leagues on a per-item basis
 	leagues := make([]string, len(items))
-	rootTypes := make([]string, len(items))
-	rootFlavors := make([]string, len(items))
-	mods := make([][]string, 0)
 	for i, item := range items {
-		names[i] = item.Name
-		typeLines[i] = item.TypeLine
-		notes[i] = item.Note
 		leagues[i] = item.League
-		rootTypes[i] = item.RootType
-		rootFlavors[i] = item.RootFlavor
-
-		itemMods := make([]string, 0)
-		concatMods := item.GetMods()
-		for _, mod := range concatMods {
-			itemMods = append(itemMods, string(mod.Template))
-		}
-		mods = append(mods, itemMods)
 	}
-
-	// Prepare to enter everything on the StringHeap
-	// This method results in a single disk write for everything
-	// rather than if we were to use separate SetStrings calls
-	var nameIds, typeLineIds, noteIds,
-		rootTypeIds, rootFlavorIds []StringHeapID
-	modIds := make([][]StringHeapID, len(mods))
-
-	gen := func(index int) ([]string, []StringHeapID) {
-
-		// Nasty, hardcoded switch... a better solution sometime :|
-		switch index {
-		case 0:
-			nameIds = make([]StringHeapID, len(names))
-			return names, nameIds
-		case 1:
-			typeLineIds = make([]StringHeapID, len(typeLines))
-			return typeLines, typeLineIds
-		case 2:
-			noteIds = make([]StringHeapID, len(notes))
-			return notes, noteIds
-		case 3:
-			rootFlavorIds = make([]StringHeapID, len(rootFlavors))
-			return rootFlavors, rootFlavorIds
-		case 4:
-			rootTypeIds = make([]StringHeapID, len(rootTypes))
-			return rootTypes, rootTypeIds
-		}
-
-		if index > 4 && (index-4) < len(mods) {
-			m := mods[index-4]
-			modIds[index-4] = make([]StringHeapID, len(m))
-			return m, modIds[index-4]
-		}
-
-		return nil, nil
-	}
-
-	err := SetStringsCB(gen, db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set strings in StringHeap, err=%s", err)
-	}
-
 	leagueIds, err := SetLeagues(leagues, db)
 	if err != nil {
 		return nil,
 			fmt.Errorf("failed to add leagues to LeagueHeap, err=%s", err)
 	}
 
-	// Build compact items from the ids
+	// Build compact items from the ids and fill in non-StringHeap information
 	compact := make([]Item, len(items))
-
 	for i, item := range items {
 		compact[i] = Item{
 			ID:             ID{}, // Explicitly empty on entrance
 			GGGID:          GGGIDFromUID(item.ID),
 			Stash:          GGGIDFromUID(item.StashID),
-			Name:           nameIds[i],
-			TypeLine:       typeLineIds[i],
-			Note:           noteIds[i],
 			League:         leagueIds[i],
-			RootType:       rootTypeIds[i],
-			RootFlavor:     rootFlavorIds[i],
 			Identified:     item.Identified,
 			Corrupted:      item.Corrupted,
 			UpdateSequence: uint16(i),
 			When:           when,
 		}
+	}
 
-		// And now the worst part, the item mods :|
-		//
-		// This is very sensitive and makes for nasty indexing logic...
-		itemMods := make([]ItemMod, len(modIds[i]))
-		concatMods := item.GetMods()
-		for k, mod := range modIds[i] {
-			itemMods[k] = ItemMod{
-				Mod:    mod,
-				Values: concatMods[k].Values,
-			}
-		}
-		compact[i].Mods = itemMods
-
+	// Populate StringHeap related information
+	if err := SetStringsForItems(items, compact, db); err != nil {
+		return nil, fmt.Errorf("failed to set strings")
 	}
 
 	// Then add populate internal IDs, adding them as necessary

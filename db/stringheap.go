@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 
+	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 )
 
@@ -84,36 +85,59 @@ func SetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 	})
 }
 
-// SetStringsCB fills in any missing string heap index values
-// and maps all indice string values to their corresponding StringHeapID
+// SetStringsForItems fills in any missing string heap index values
+// and maps all strings present on provided items to their
+// StringHeapID.
 //
-// This will call the gen function until it returns no further values.
-// The gen function returns the strings to insert and an appropriately sized
-// array to store the resulting StringHeapID
+// This will call the gen function until it returns no further non-nil values.
+// The gen function is expected to return the Items to add and pre-initialized
+// Items to decorate with strings
 //
 // This function's use case is to allow many, separate sets of strings
 // to be added while retaining their index positions.
-func SetStringsCB(gen func(index int) ([]string, []StringHeapID),
-	db *bolt.DB) error {
+func SetStringsForItems(source []stash.Item, target []Item, db *bolt.DB) error {
 
+	if len(source) != len(target) {
+		return fmt.Errorf("length of provided source does not match target, %d!=%d",
+			len(source), len(target))
+	}
 	return db.Update(func(tx *bolt.Tx) error {
 
-		i := 0
-		for indices, ids := gen(i); indices != nil; indices, ids = gen(i) {
-			if len(indices) != len(ids) {
-				return fmt.Errorf("length of provided indices does not match StringHeapID store, %d!=%d",
-					len(indices), len(ids))
+		var err error
+		for i, item := range source {
+			// Repetitive and easy
+			target[i].Name, err = setString(item.Name, tx)
+			if err != nil {
+				return err
+			}
+			target[i].TypeLine, err = setString(item.TypeLine, tx)
+			if err != nil {
+				return err
+			}
+			target[i].Note, err = setString(item.Note, tx)
+			if err != nil {
+				return err
+			}
+			target[i].RootFlavor, err = setString(item.RootFlavor, tx)
+			if err != nil {
+				return err
+			}
+			target[i].RootType, err = setString(item.RootType, tx)
+			if err != nil {
+				return err
 			}
 
-			for i, index := range indices {
-				id, err := setString(index, tx)
+			// Fill in mods, nasty but fast
+			sourceMods := item.GetMods()
+			target[i].Mods = make([]ItemMod, len(sourceMods))
+			for k, mod := range sourceMods {
+				target[i].Mods[k].Mod, err = setString(string(mod.Template),
+					tx)
 				if err != nil {
 					return err
 				}
-				ids[i] = id
+				target[i].Mods[k].Values = mod.Values
 			}
-
-			i++
 		}
 
 		return nil
