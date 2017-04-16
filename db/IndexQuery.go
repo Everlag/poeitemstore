@@ -92,7 +92,8 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	// Create our item sets
 	sets := make([]map[ID]struct{}, len(q.mods))
 	for i := range sets {
-		sets[i] = make(map[ID]struct{})
+		// Pre-allocate maps to fit 3 strides worth of data.
+		sets[i] = make(map[ID]struct{}, LookupItemsMultiModStrideLength*3)
 	}
 
 	q.ctx = &indexQueryContext{
