@@ -11,7 +11,7 @@ import (
 //
 // Longer strides mean fewer intersections but more potentially useless
 // item mods checked.
-const LookupItemsMultiModStrideLength = 1
+const LookupItemsMultiModStrideLength = 32
 
 // IndexQuery represents a query running over established indices
 //
