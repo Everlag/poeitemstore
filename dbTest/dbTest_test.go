@@ -232,15 +232,3 @@ func TestMain(m *testing.M) {
 
 	os.Exit(ret)
 }
-
-// Consider this a template of
-func TestApples(t *testing.T) {
-
-	t.Parallel()
-
-	db := NewTempDatabase(t)
-	fmt.Printf("I have a database, neat!, db=%s\n", db)
-
-	t.Run("", func(t *testing.T) {})
-
-}
