@@ -94,10 +94,17 @@ const ModIndexKeySuffixLength = TimestampSize + 2
 //
 // The mod index key is generated as [mod.Values..., now, updateSequence]
 func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte {
+
+	// Pre-allocate index key so the entire key can be
+	// encoded with a single allocation.
+	modsLength := 2 * len(mod.Values)
+	indexKey := make([]byte, ModIndexKeySuffixLength+modsLength)
+
 	// Generate the suffix
-	suffix := make([]byte, 0)
+	sequenceBytes := i16tob(updateSequence)
+	suffix := (indexKey[modsLength:])[:0] // Deal with pre-allocated space
 	suffix = append(suffix, now[:]...)
-	suffix = append(suffix, i16tob(updateSequence)...)
+	suffix = append(suffix, sequenceBytes...)
 
 	if len(suffix) != ModIndexKeySuffixLength {
 		panic(fmt.Sprintf("unexpected suffix length, got %d, expected %d",
@@ -108,7 +115,7 @@ func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte
 	//
 	// TODO: avoid appends, pre-size the backing slice to accomodate the
 	// contents including the header
-	index := make([]byte, 0)
+	index := indexKey[:0] // Deal with pre-allocated space
 	for _, value := range mod.Values {
 		index = append(index, i16tob(value)...)
 	}
