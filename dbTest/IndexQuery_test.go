@@ -212,23 +212,28 @@ func testIndexQueryAgainstChangeSet(search cmd.MultiModSearch, path string,
 	foundOnce := false
 
 	RunChangeSet(set, func(id string) error {
-		// Translate the query now, after we are more likely
-		// to have the desired mods available on the StringHeap
-		indexQuery, league := MultiModSearchToIndexQuery(search, bdb, t)
+		success := t.Run(id, func(t *testing.T) {
+			// Translate the query now, after we are more likely
+			// to have the desired mods available on the StringHeap
+			indexQuery, league := MultiModSearchToIndexQuery(search, bdb, t)
 
-		indexResult, err := indexQuery.Run(bdb)
-		if err != nil {
-			t.Fatalf("failed IndexQuery.Run, err=%s", err)
+			indexResult, err := indexQuery.Run(bdb)
+			if err != nil {
+				t.Fatalf("failed IndexQuery.Run, err=%s", err)
+			}
+
+			foundOnce = foundOnce || (len(indexResult) > 0)
+			if len(indexResult) > 0 {
+				t.Logf("found %d items", len(indexResult))
+			}
+
+			// Ensure correctness
+			CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
+				bdb, t)
+		})
+		if !success {
+			t.Fatalf("failed subtest '%s'", id)
 		}
-
-		foundOnce = foundOnce || (len(indexResult) > 0)
-		if len(indexResult) > 0 {
-			t.Logf("found %d items", len(indexResult))
-		}
-
-		// Ensure correctness
-		CompareIndexQueryResultsToItemStoreEquiv(search, indexResult, league,
-			bdb, t)
 		return nil
 	}, bdb, t)
 
