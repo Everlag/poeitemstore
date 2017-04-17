@@ -95,53 +95,51 @@ func SetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 //
 // This function's use case is to allow many, separate sets of strings
 // to be added while retaining their index positions.
-func SetStringsForItems(source []stash.Item, target []Item, db *bolt.DB) error {
+func setStringsForItems(source []stash.Item, target []Item, tx *bolt.Tx) error {
 
 	if len(source) != len(target) {
 		return fmt.Errorf("length of provided source does not match target, %d!=%d",
 			len(source), len(target))
 	}
-	return db.Update(func(tx *bolt.Tx) error {
 
-		var err error
-		for i, item := range source {
-			// Repetitive and easy
-			target[i].Name, err = setString(item.Name, tx)
-			if err != nil {
-				return err
-			}
-			target[i].TypeLine, err = setString(item.TypeLine, tx)
-			if err != nil {
-				return err
-			}
-			target[i].Note, err = setString(item.Note, tx)
-			if err != nil {
-				return err
-			}
-			target[i].RootFlavor, err = setString(item.RootFlavor, tx)
-			if err != nil {
-				return err
-			}
-			target[i].RootType, err = setString(item.RootType, tx)
-			if err != nil {
-				return err
-			}
-
-			// Fill in mods, nasty but fast
-			sourceMods := item.GetMods()
-			target[i].Mods = make([]ItemMod, len(sourceMods))
-			for k, mod := range sourceMods {
-				target[i].Mods[k].Mod, err = setString(string(mod.Template),
-					tx)
-				if err != nil {
-					return err
-				}
-				target[i].Mods[k].Values = mod.Values
-			}
+	var err error
+	for i, item := range source {
+		// Repetitive and easy
+		target[i].Name, err = setString(item.Name, tx)
+		if err != nil {
+			return err
+		}
+		target[i].TypeLine, err = setString(item.TypeLine, tx)
+		if err != nil {
+			return err
+		}
+		target[i].Note, err = setString(item.Note, tx)
+		if err != nil {
+			return err
+		}
+		target[i].RootFlavor, err = setString(item.RootFlavor, tx)
+		if err != nil {
+			return err
+		}
+		target[i].RootType, err = setString(item.RootType, tx)
+		if err != nil {
+			return err
 		}
 
-		return nil
-	})
+		// Fill in mods, nasty but fast
+		sourceMods := item.GetMods()
+		target[i].Mods = make([]ItemMod, len(sourceMods))
+		for k, mod := range sourceMods {
+			target[i].Mods[k].Mod, err = setString(string(mod.Template),
+				tx)
+			if err != nil {
+				return err
+			}
+			target[i].Mods[k].Values = mod.Values
+		}
+	}
+
+	return nil
 }
 
 // GetStrings maps all indice string values to their corresponding StringHeapID

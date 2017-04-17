@@ -121,22 +121,28 @@ func getLeague(index string, tx *bolt.Tx) (LeagueHeapID, error) {
 	return LeagueHeapIDFromBytes(result), nil
 }
 
+func setLeagues(leagues []string, tx *bolt.Tx) ([]LeagueHeapID, error) {
+	ids := make([]LeagueHeapID, len(leagues))
+
+	for i, index := range leagues {
+		id, err := setLeague(index, tx)
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
+	}
+
+	return ids, nil
+
+}
+
 // SetLeagues fills in any missing league heap index values
 // and maps all indice league values to their corresponding LeagueHeapID
 func SetLeagues(leagues []string, db *bolt.DB) ([]LeagueHeapID, error) {
-	ids := make([]LeagueHeapID, len(leagues))
-
-	return ids, db.Update(func(tx *bolt.Tx) error {
-
-		for i, index := range leagues {
-			id, err := setLeague(index, tx)
-			if err != nil {
-				return err
-			}
-			ids[i] = id
-		}
-
-		return nil
+	var ids []LeagueHeapID
+	return ids, db.Update(func(tx *bolt.Tx) (err error) {
+		ids, err = setLeagues(leagues, tx)
+		return err
 	})
 }
 

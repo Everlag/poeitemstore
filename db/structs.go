@@ -201,38 +201,48 @@ func (item Item) Inflate(db *bolt.DB) stash.Item {
 func StashItemsToCompact(items []stash.Item, when Timestamp,
 	db *bolt.DB) ([]Item, error) {
 
-	// Translate leagues on a per-item basis
-	leagues := make([]string, len(items))
-	for i, item := range items {
-		leagues[i] = item.League
-	}
-	leagueIds, err := SetLeagues(leagues, db)
-	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add leagues to LeagueHeap, err=%s", err)
-	}
-
-	// Build compact items from the ids and fill in non-StringHeap information
 	compact := make([]Item, len(items))
-	for i, item := range items {
-		compact[i] = Item{
-			ID:             ID{}, // Explicitly empty on entrance
-			GGGID:          GGGIDFromUID(item.ID),
-			Stash:          GGGIDFromUID(item.StashID),
-			League:         leagueIds[i],
-			Identified:     item.Identified,
-			Corrupted:      item.Corrupted,
-			UpdateSequence: uint16(i),
-			When:           when,
-		}
-	}
 
-	// Populate StringHeap related information
-	if err := SetStringsForItems(items, compact, db); err != nil {
-		return nil, fmt.Errorf("failed to set strings")
+	err := db.Update(func(tx *bolt.Tx) error {
+		// Translate leagues on a per-item basis
+		leagues := make([]string, len(items))
+		for i, item := range items {
+			leagues[i] = item.League
+		}
+		leagueIds, err := setLeagues(leagues, tx)
+		if err != nil {
+			return fmt.Errorf("failed to add leagues to LeagueHeap, err=%s",
+				err)
+		}
+
+		// Build compact items from the ids and fill in non-StringHeap information
+		for i, item := range items {
+			compact[i] = Item{
+				ID:             ID{}, // Explicitly empty on entrance
+				GGGID:          GGGIDFromUID(item.ID),
+				Stash:          GGGIDFromUID(item.StashID),
+				League:         leagueIds[i],
+				Identified:     item.Identified,
+				Corrupted:      item.Corrupted,
+				UpdateSequence: uint16(i),
+				When:           when,
+			}
+		}
+
+		// Populate StringHeap related information
+		if err := setStringsForItems(items, compact, tx); err != nil {
+			return fmt.Errorf("failed to set strings")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to translate item to db form, err=%s",
+			err)
 	}
 
 	// Then add populate internal IDs, adding them as necessary
+	//
+	// Left outside the above transaction due to benchmarking results.
 	err = GetTranslations(compact, db)
 	if err != nil {
 		return nil,
