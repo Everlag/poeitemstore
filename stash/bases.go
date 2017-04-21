@@ -120,20 +120,20 @@ func (inv baseInverter) typeLineToRootAndFlavor(typeLine string) (flavor,
 }
 
 // Singleton inverter the package uses
-var inverter baseInverter
+var inverter *baseInverter
 
 // MatchTypeline returns a flavor and root for a discovered base
 // or ok is false.
 func MatchTypeline(typeline string) (flavor, root string, ok bool) {
-	return inverter.typeLineToRootAndFlavor(typeline)
-}
+	if inverter == nil {
+		bl, err := getBaseLookup()
+		if err != nil {
+			panic(fmt.Sprintf("failed to deserialize baseLookup on stash init, err=%s", err))
+		}
 
-// Prep our singleton inverter
-func init() {
-	bl, err := getBaseLookup()
-	if err != nil {
-		panic(fmt.Sprintf("failed to deserialize baseLookup on stash init, err=%s", err))
+		tempInverter := bl.toInverter()
+		inverter = &tempInverter
 	}
 
-	inverter = bl.toInverter()
+	return inverter.typeLineToRootAndFlavor(typeline)
 }
