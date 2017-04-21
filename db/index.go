@@ -99,7 +99,7 @@ func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte
 
 	// Pre-allocate index key so the entire key can be
 	// encoded with a single allocation.
-	modsLength := 2 * len(mod.Values)
+	modsLength := 2
 	indexKey := make([]byte, ModIndexKeySuffixLength+modsLength)
 
 	// Generate the suffix
@@ -118,9 +118,7 @@ func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte
 	// TODO: avoid appends, pre-size the backing slice to accomodate the
 	// contents including the header
 	index := indexKey[:0] // Deal with pre-allocated space
-	for _, value := range mod.Values {
-		index = append(index, i16tob(value)...)
-	}
+	index = append(index, i16tob(mod.Value)...)
 
 	// And return the index with its suffix
 	return append(index, suffix...)

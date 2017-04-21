@@ -132,12 +132,11 @@ func setStringsForItems(source []stash.Item, target []Item, tx *bolt.Tx) error {
 		sourceMods := item.GetMods()
 		target[i].Mods = make([]ItemMod, len(sourceMods))
 		for k, mod := range sourceMods {
-			target[i].Mods[k].Mod, err = setString(string(mod.Template),
-				tx)
+			modStringID, err := setString(string(mod.Template), tx)
 			if err != nil {
 				return err
 			}
-			target[i].Mods[k].Values = mod.Values
+			target[i].Mods[k] = StashItemModToCompact(mod, modStringID)
 		}
 	}
 

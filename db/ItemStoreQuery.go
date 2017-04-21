@@ -32,9 +32,14 @@ func NewItemStoreQuery(rootType, rootFlavor StringHeapID,
 	league LeagueHeapID,
 	maxDesired int) ItemStoreQuery {
 
+	minModValuesScaled := make([]uint16, len(minModValues))
+	for i, minValue := range minModValues {
+		minModValuesScaled[i] = minValue * ItemModAverageScaleFactor
+	}
+
 	minModMap := make(map[StringHeapID]uint16)
 	for i, mod := range mods {
-		minModMap[mod] = minModValues[i]
+		minModMap[mod] = minModValuesScaled[i]
 	}
 
 	return ItemStoreQuery{
@@ -63,7 +68,7 @@ func (q *ItemStoreQuery) checkItem(item Item) bool {
 		if !ok {
 			continue
 		}
-		if len(mod.Values) < 1 || mod.Values[0] > required {
+		if mod.Value > required {
 			countPresent++
 		}
 	}

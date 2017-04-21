@@ -116,11 +116,17 @@ func IDFromSequence(seq uint64) ID {
 	return id
 }
 
+// ItemModAverageScaleFactor is the multiplier applied to the average
+// of multi-mod items. This allows a fixed precision of averages.
+//
+// Any more than 10 and we could risk overflowing our uint16
+const ItemModAverageScaleFactor = 10
+
 // ItemMod represents a compact explicit or implicit modifier on an item
 //msgp:tuple ItemMod
 type ItemMod struct {
-	Mod    StringHeapID
-	Values []uint16
+	Mod   StringHeapID
+	Value uint16
 }
 
 // Item represents a compact record of an item.

@@ -59,9 +59,14 @@ func NewIndexQuery(rootType, rootFlavor StringHeapID,
 	league LeagueHeapID,
 	maxDesired int) IndexQuery {
 
+	minModValuesScaled := make([]uint16, len(minModValues))
+	for i, minValue := range minModValues {
+		minModValuesScaled[i] = minValue * ItemModAverageScaleFactor
+	}
+
 	return IndexQuery{
 		rootType, rootFlavor,
-		mods, minModValues,
+		mods, minModValuesScaled,
 		league, maxDesired, nil,
 	}
 

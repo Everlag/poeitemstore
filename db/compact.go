@@ -16,12 +16,38 @@ func (id LeagueHeapID) Inflate(db *bolt.DB) string {
 	return InflateLeague(id, db)
 }
 
+// StashItemModToCompact compacts the given source ItemMod and
+// StringHeapID for the mod's text into our internal format
+func StashItemModToCompact(mod stash.ItemMod,
+	modStringID StringHeapID) ItemMod {
+
+	// Average the values to result in single value
+	//
+	// 0 Values results in 0 as computed Value
+	// 1 Values results in Values[0] as computed Value
+	// >1 Values results in Average(Values) as computed Value
+	var value uint16
+	for _, val := range mod.Values {
+		value += val
+	}
+	// Average
+	avgValue := (float64(value) / float64(len(mod.Values)))
+	// And scale
+	value = uint16(avgValue * ItemModAverageScaleFactor)
+
+	return ItemMod{
+		Value: value,
+		Mod:   modStringID,
+	}
+
+}
+
 // Inflate returns an inflated equivalent item modifier for human use
 func (mod ItemMod) Inflate(db *bolt.DB) stash.ItemMod {
 
 	return stash.ItemMod{
 		Template: []byte(mod.Mod.Inflate(db)),
-		Values:   mod.Values,
+		Values:   []uint16{mod.Value},
 	}
 
 }
