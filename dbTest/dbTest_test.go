@@ -15,6 +15,7 @@ import (
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
+	"github.com/tinylib/msgp/msgp"
 )
 
 // TempEnviron represents the complete environment for
@@ -76,8 +77,8 @@ func NewTempDatabase(t testing.TB) *bolt.DB {
 //
 // Provided path is package-relative,
 // ie 'thing.json' fetches 'testdata/thing.json'
-func GetTestData(path string) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Join("testdata", path))
+func GetTestData(path string) (*os.File, error) {
+	return os.Open(filepath.Join("testdata", path))
 }
 
 // GetTestStashUpdate returns the []db.Stash kept in the dbTest directory
@@ -111,13 +112,14 @@ func GetTestStashUpdate(path string, bdb *bolt.DB,
 // which is accessible using Assets() from go-bindata
 func GetChangeSet(path string, t testing.TB) stash.ChangeSet {
 
-	raw, err := GetTestData(path)
+	f, err := GetTestData(path)
 	if err != nil {
 		t.Fatalf("failed to fetch '%s', err=%s", path, err)
 	}
+	defer f.Close()
 
 	var set stash.ChangeSet
-	if _, err := set.UnmarshalMsg(raw); err != nil {
+	if err := set.DecodeMsg(msgp.NewReader(f)); err != nil {
 		t.Fatalf("failed to unmarshal '%s', err=%s",
 			path, err)
 	}

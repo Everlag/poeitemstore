@@ -8,6 +8,7 @@ package stash
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -198,12 +199,7 @@ func GetStored() (*Response, error) {
 	}
 	defer f.Close()
 
-	serial, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ReadlAll from file")
-	}
-
-	return RespFromJSON(serial)
+	return RespFromJSON(f)
 }
 
 // CleanResponse adds on Type data as well as ensures the response
@@ -241,10 +237,9 @@ func CleanResponse(response *Response) error {
 
 // RespFromJSON attempts to deserialize the provided data
 // and return it as a StashResponse
-func RespFromJSON(serial []byte) (*Response, error) {
+func RespFromJSON(r io.Reader) (*Response, error) {
 	var response Response
-	err := easyjson.Unmarshal(serial, &response)
-	// err = decoder.Decode(&response)
+	err := easyjson.UnmarshalFromReader(r, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
 	}
