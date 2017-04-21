@@ -3,14 +3,13 @@ package db
 //go:generate msgp
 
 import (
-	"crypto/sha512"
-
 	"fmt"
 
 	"time"
 
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
+	blake2b "github.com/minio/blake2b-simd"
 )
 
 // StringHeapID maps to a stored string identifier.
@@ -107,7 +106,7 @@ func GGGIDFromUID(uid string) GGGID {
 
 	var id [GGGIDSize]byte
 
-	hash := sha512.Sum512([]byte(uid))
+	hash := blake2b.Sum512([]byte(uid))
 
 	copy(id[:], hash[:])
 
