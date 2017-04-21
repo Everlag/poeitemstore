@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const itemStoreBucket string = "itemStore"
@@ -35,7 +36,7 @@ func getNextItemID(league *bolt.Bucket) (ID, error) {
 	// If it doesn't, we need a sequence number
 	seq, err := league.NextSequence()
 	if err != nil {
-		return ID{}, fmt.Errorf("failed to get NextSequence in %s",
+		return ID{}, errors.Errorf("failed to get NextSequence in %s",
 			itemStoreBucket)
 	}
 	return IDFromSequence(seq), nil
@@ -66,7 +67,7 @@ func addItems(items []Item, tx *bolt.Tx) (int, error) {
 		// Serialize the item
 		serial, err := item.MarshalMsg(nil)
 		if err != nil {
-			return 0, fmt.Errorf("failed to Marshal Item, err=%s", err)
+			return 0, errors.Wrap(err, "failed to Marshal Item")
 		}
 
 		league := getLeagueItemBucket(item.League, tx)
@@ -82,7 +83,7 @@ func addItems(items []Item, tx *bolt.Tx) (int, error) {
 	// Index each of the items
 	_, err := IndexItems(items, tx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to add indices, err=%s", err)
+		return 0, errors.Wrap(err, "failed to add indices")
 	}
 
 	return overwritten, nil
@@ -138,21 +139,21 @@ func removeItems(ids []ID, league LeagueHeapID, tx *bolt.Tx) error {
 		// to remove all of its index entries
 		itemBytes := leagueBucket.Get(id[:])
 		if itemBytes == nil {
-			return fmt.Errorf("item not found, cannot remove")
+			return errors.New("item not found, cannot remove")
 		}
 		// Delete the item from the heap
 		leagueBucket.Delete(id[:])
 
 		var item Item
 		if _, err := item.UnmarshalMsg(itemBytes); err != nil {
-			return fmt.Errorf("failed to Unmarshal Item from heap, err=%s", err)
+			return errors.Wrap(err, "failed to Unmarshal Item from heap")
 		}
 		items[i] = item
 	}
 
 	// Remove associate index entries
 	if err := DeindexItems(items, tx); err != nil {
-		return fmt.Errorf("failed remove item indices, err=%s", err)
+		return errors.Wrap(err, "failed remove item indices")
 	}
 
 	return nil
@@ -184,7 +185,7 @@ func GetItemByID(id ID, league LeagueHeapID, tx *bolt.Tx) (Item, error) {
 	// Grab the stored item
 	itemBytes := leagueBucket.Get(id[:])
 	if itemBytes == nil {
-		return item, fmt.Errorf("item not found")
+		return item, errors.New("item not found")
 	}
 
 	// Unmarshal the item
@@ -241,7 +242,7 @@ func ItemStoreCount(db *bolt.DB) (int, error) {
 		for _, id := range leagueIDs {
 			b := getLeagueItemBucket(id, tx)
 			if b == nil {
-				return fmt.Errorf("%s bucket not found", itemStoreBucket)
+				return errors.Errorf("%s bucket not found", itemStoreBucket)
 			}
 			stats := b.Stats()
 			count += stats.KeyN

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 // LookupItemsMultiModStrideLength determines how many items
@@ -83,7 +84,7 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 		itemModBucket, err := getItemModIndexBucketRO(q.rootType, q.rootFlavor,
 			mod, q.league, tx)
 		if err != nil {
-			return fmt.Errorf("faield to get item mod index bucket, mod=%d err=%s",
+			return errors.Errorf("faield to get item mod index bucket, mod=%d err=%s",
 				mod, err)
 		}
 		cursors[i] = itemModBucket.Cursor()
@@ -115,11 +116,11 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
 	values, err := decodeModIndexKey(k)
 	if err != nil {
 		return false,
-			fmt.Errorf("failed to decode mod index key, err=%s", err)
+			errors.Wrap(err, "failed to decode mod index key")
 	}
 	if len(values) == 0 {
 		return false,
-			fmt.Errorf("decoded item mod index key to no values, key=%v", k)
+			errors.Errorf("decoded item mod index key to no values, key=%v", k)
 	}
 
 	// Ensure the mod is the correct value
@@ -171,7 +172,7 @@ func (q *IndexQuery) stride() error {
 			}
 			valid, err := q.checkPair(k, v, i)
 			if err != nil {
-				return fmt.Errorf("failed to check value pair, err=%s", err)
+				return errors.Wrap(err, "failed to check value pair")
 			}
 
 			// If its not a valid pair, we're done iterating on this cursor
@@ -240,7 +241,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 
 		err := q.initContext(tx)
 		if err != nil {
-			return fmt.Errorf("failed to initialize query context")
+			return errors.New("failed to initialize query context")
 		}
 		// Always clear the context when we exit
 		defer q.clearContext()
@@ -255,7 +256,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 			}
 			// Check the pair, we only care about possible errors here
 			if _, err := q.checkPair(k, v, i); err != nil {
-				return fmt.Errorf("failed to check value in bucekt, err=%s", err)
+				return errors.Wrap(err, "failed to check value in bucekt")
 			}
 		}
 
@@ -265,7 +266,7 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 			// Iterate for a stride
 			err := q.stride()
 			if err != nil {
-				return fmt.Errorf("failed a stride, err=%s", err)
+				return errors.Wrap(err, "failed a stride")
 			}
 
 			foundIDs = q.intersectIDSets(nil)

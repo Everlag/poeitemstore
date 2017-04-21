@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/mailru/easyjson"
+	"github.com/pkg/errors"
 )
 
 // PropertyValue holds a string value alongside an
@@ -45,24 +46,24 @@ func (v *PropertyValue) UnmarshalJSON(b []byte) error {
 
 	err := json.Unmarshal(b, &raw)
 	if err != nil {
-		return fmt.Errorf("invalid property pair, unparseable, err=%s", err)
+		return errors.Wrap(err, "invalid property pair, unparseable")
 	}
 
 	if len(raw) != 2 {
-		return fmt.Errorf("invalid property pair, (len()==%d)!=2", len(raw))
+		return errors.Errorf("invalid property pair, (len()==%d)!=2", len(raw))
 	}
 
 	var ok bool
 	v.Value, ok = raw[0].(string)
 	if !ok {
-		return fmt.Errorf("invalid property pair, first element not string")
+		return errors.New("invalid property pair, first element not string")
 	}
 
 	// We have to use the widest possible type here and narrow...
 	var broad float64
 	broad, ok = raw[1].(float64)
 	if !ok {
-		return fmt.Errorf("invalid property pair, second element not float64")
+		return errors.New("invalid property pair, second element not float64")
 	}
 	v.PrintKey = int(broad)
 
@@ -87,7 +88,7 @@ func (m *ItemMod) MarshalJSON() ([]byte, error) {
 
 		loc := hashRegex.FindIndex(result)
 		if loc == nil {
-			return nil, fmt.Errorf("failed to match template string slot with expected value")
+			return nil, errors.New("failed to match template string slot with expected value")
 		}
 
 		insert := []byte(strconv.FormatUint(uint64(value), 10))
@@ -115,7 +116,7 @@ func (m *ItemMod) UnmarshalJSON(b []byte) error {
 	for i, match := range matches {
 		parsed, err := strconv.ParseUint(string(match), 10, 16)
 		if err != nil {
-			return fmt.Errorf("failed to convert match to int, err=%s", err)
+			return errors.Wrap(err, "failed to convert match to int")
 		}
 		m.Values[i] = uint16(parsed)
 	}
@@ -195,7 +196,7 @@ const TestResponseLoc string = "StashResponse.json"
 func GetStored() (*Response, error) {
 	f, err := os.Open(TestResponseLoc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open TestResponseLoc, err=%s", err)
+		return nil, errors.Wrap(err, "failed to open TestResponseLoc")
 	}
 	defer f.Close()
 
@@ -222,7 +223,7 @@ func CleanResponse(response *Response) error {
 			if !ok {
 				fmt.Println(stash.ID)
 				fmt.Println(item)
-				return fmt.Errorf("failed to discover flavor and root for Item, name=%s, typeline=%s, id=%s",
+				return errors.Errorf("failed to discover flavor and root for Item, name=%s, typeline=%s, id=%s",
 					item.Name, item.TypeLine, item.ID)
 			}
 			item.RootType = root
@@ -241,7 +242,7 @@ func RespFromJSON(r io.Reader) (*Response, error) {
 	var response Response
 	err := easyjson.UnmarshalFromReader(r, &response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode TestResponseLoc, err=%s", err)
+		return nil, errors.Wrap(err, "failed to decode TestResponseLoc")
 	}
 
 	return &response, CleanResponse(&response)
@@ -258,16 +259,14 @@ func FetchUpdate(changeID string) (*Response, error) {
 
 	resp, err := http.Get(endpoint)
 	if err != nil {
-		return nil,
-			fmt.Errorf("failed to call stash api, err=%s", err)
+		return nil, errors.Wrap(err, "failed to call stash api")
 	}
 	defer resp.Body.Close()
 
 	var response Response
 	err = easyjson.UnmarshalFromReader(resp.Body, &response)
 	if err != nil {
-		return nil,
-			fmt.Errorf("failed to decode stash tab response, err=%s", err)
+		return nil, errors.Wrap(err, "failed to decode stash tab response")
 	}
 
 	return &response, CleanResponse(&response)
@@ -279,16 +278,16 @@ func FetchAndSetStore() error {
 
 	response, err := FetchUpdate("")
 	if err != nil {
-		return fmt.Errorf("failed to fetch update, err=%s", err)
+		return errors.Wrap(err, "failed to fetch update")
 	}
 
 	serial, err := response.MarshalJSON()
 	if err != nil {
-		return fmt.Errorf("failed to marshal stash tab response, err=%s", err)
+		return errors.Wrap(err, "failed to marshal stash tab response")
 	}
 
 	if err = ioutil.WriteFile(TestResponseLoc, serial, 0777); err != nil {
-		return fmt.Errorf("failed to save stashResult.json, err=%s", err)
+		return errors.Wrap(err, "failed to save stashResult.json")
 	}
 
 	return nil

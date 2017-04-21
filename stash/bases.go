@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Base list acquired from
@@ -71,7 +73,7 @@ func (bl baseLookup) toInverter() baseInverter {
 func getBaseLookup() (*baseLookup, error) {
 	raw, err := Asset("assets/baseInfo.json")
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch baseInfo.json, err=%s", err)
+		return nil, errors.Wrap(err, "failed to fetch baseInfo.json")
 	}
 
 	var bl baseLookup

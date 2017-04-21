@@ -3,11 +3,10 @@ package dbTest
 import (
 	"testing"
 
-	"fmt"
-
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 // MultiModSearchToItemStoreQuery converts a MultiModSearch
@@ -61,19 +60,19 @@ func compareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
-				return fmt.Errorf("failed to find item, err=%s", err)
+				return errors.Wrap(err, "failed to find item")
 			}
 			foundItems = append(foundItems, item)
 		}
 
 		expectedIDs, err := db.GetGGGIDTranslations(expected, league, tx)
 		if err != nil {
-			return fmt.Errorf("failed to translate expected ID, err=%s", err)
+			return errors.Wrap(err, "failed to translate expected ID")
 		}
 		for _, id := range expectedIDs {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
-				return fmt.Errorf("failed to find item, err=%s", err)
+				return errors.Wrap(err, "failed to find item")
 			}
 			expectedItems[item.GGGID] = item
 		}
@@ -81,8 +80,7 @@ func compareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 		return nil
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to find queried item in database, err=%s",
-			err)
+		err = errors.Wrap(err, "failed to find queried item in database")
 		return
 	}
 
@@ -112,7 +110,7 @@ func compareQueryResultsToExpected(ids []db.ID, league db.LeagueHeapID,
 		t.Logf("failed to find expected items")
 		missing = len(lookup)
 		found = len(foundItems)
-		err = fmt.Errorf("%d items missing despite %d found",
+		err = errors.Errorf("%d items missing despite %d found",
 			missing, found)
 		return
 	}
@@ -145,7 +143,7 @@ func IDsToGGGID(ids []db.ID, league db.LeagueHeapID,
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
-				return fmt.Errorf("failed to find item, err=%s", err)
+				return errors.Wrap(err, "failed to find item")
 			}
 			gggIDs = append(gggIDs, item.GGGID)
 		}

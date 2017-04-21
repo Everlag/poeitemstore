@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Everlag/poeitemstore/stash"
+	"github.com/pkg/errors"
 )
 
 // MultiModSearch specifies a search to perform for items
@@ -100,13 +101,13 @@ func (search *MultiModSearch) Satisfies(result []stash.Item) bool {
 func FetchMultiModSearch(path string) (*MultiModSearch, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file, err=%s", err)
+		return nil, errors.Wrap(err, "failed to open file")
 	}
 	decoder := json.NewDecoder(f)
 	var search MultiModSearch
 	err = decoder.Decode(&search)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read query, err=%s", err)
+		return nil, errors.Wrap(err, "failed to read query")
 	}
 
 	return &search, nil

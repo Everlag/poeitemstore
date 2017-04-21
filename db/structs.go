@@ -3,13 +3,12 @@ package db
 //go:generate msgp
 
 import (
-	"fmt"
-
 	"time"
 
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 	blake2b "github.com/minio/blake2b-simd"
+	"github.com/pkg/errors"
 )
 
 // StringHeapID maps to a stored string identifier.
@@ -210,8 +209,7 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 		}
 		leagueIds, err := setLeagues(leagues, tx)
 		if err != nil {
-			return fmt.Errorf("failed to add leagues to LeagueHeap, err=%s",
-				err)
+			return errors.Wrap(err, "failed to add leagues to LeagueHeap")
 		}
 
 		// Build compact items from the ids and fill in non-StringHeap information
@@ -230,13 +228,12 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 
 		// Populate StringHeap related information
 		if err := setStringsForItems(items, compact, tx); err != nil {
-			return fmt.Errorf("failed to set strings")
+			return errors.New("failed to set strings")
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to translate item to db form, err=%s",
-			err)
+		return nil, errors.Wrap(err, "failed to translate item to db form")
 	}
 
 	// Then add populate internal IDs, adding them as necessary
@@ -244,8 +241,7 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 	// Left outside the above transaction due to benchmarking results.
 	err = GetTranslations(compact, db)
 	if err != nil {
-		return nil,
-			fmt.Errorf("failed to add internal IDs to items, err=%s", err)
+		return nil, errors.Wrap(err, "failed to add internal IDs to items")
 	}
 
 	return compact, nil
@@ -345,7 +341,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	// Fetch and decorate the ids to the compact stashes
 	leagueIDs, err := SetLeagues(leagues, db)
 	if err != nil {
-		err = fmt.Errorf("failed to add LeagueHeapIDs to stashes, err=%s", err)
+		err = errors.Wrap(err, "failed to add LeagueHeapIDs to stashes")
 		return nil, nil, err
 	}
 	for i, id := range leagueIDs {
@@ -355,7 +351,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	// Grab the compact items as their flat form
 	compactItems, err := StashItemsToCompact(flatItems, when, db)
 	if err != nil {
-		err = fmt.Errorf("failed to compact items, err=%s", err)
+		err = errors.Wrap(err, "failed to compact items")
 		return nil, nil, err
 	}
 

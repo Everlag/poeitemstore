@@ -1,9 +1,8 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 // ItemStoreQuery represents a query running naively over the ItemStore
@@ -77,8 +76,7 @@ func (q *ItemStoreQuery) checkPair(k, v []byte) (bool, error) {
 	var item Item
 	_, err := item.UnmarshalMsg(v)
 	if err != nil {
-		return false, fmt.Errorf("failed to UnmarshalMsg itemstore item, err=%s",
-			err)
+		return false, errors.Wrap(err, "failed to UnmarshalMsg itemstore item")
 	}
 	return q.checkItem(item), nil
 }
@@ -95,7 +93,7 @@ func (q *ItemStoreQuery) Run(db *bolt.DB) ([]ID, error) {
 
 		b := getLeagueItemBucket(q.league, tx)
 		if b == nil {
-			return fmt.Errorf("failed to get league item bucket, LeagueHeapID=%d",
+			return errors.Errorf("failed to get league item bucket, LeagueHeapID=%d",
 				q.league)
 		}
 
@@ -103,14 +101,13 @@ func (q *ItemStoreQuery) Run(db *bolt.DB) ([]ID, error) {
 		c := b.Cursor()
 		k, v := c.Last()
 		if k == nil {
-			return fmt.Errorf("failed to get last item in itemstore, empty bucket")
+			return errors.New("failed to get last item in itemstore, empty bucket")
 		}
 		// Test the item we got back as long as it isn't a bucket
 		if len(v) > 0 {
 			valid, err := q.checkPair(k, v)
 			if err != nil {
-				return fmt.Errorf("failed to check pair in itemstore, err=%s",
-					err)
+				return errors.Wrap(err, "failed to check pair in itemstore")
 			}
 			if valid {
 				var id ID
@@ -137,8 +134,7 @@ func (q *ItemStoreQuery) Run(db *bolt.DB) ([]ID, error) {
 			}
 			valid, err := q.checkPair(k, v)
 			if err != nil {
-				return fmt.Errorf("failed to check pair in itemstore, err=%s",
-					err)
+				return errors.Wrap(err, "failed to check pair in itemstore")
 			}
 			if valid {
 				var id ID

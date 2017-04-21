@@ -15,6 +15,7 @@ import (
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -148,7 +149,7 @@ func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
-				return fmt.Errorf("failed to find item, err=%s", err)
+				return errors.Wrap(err, "failed to find item")
 			}
 			compact = append(compact, item)
 		}

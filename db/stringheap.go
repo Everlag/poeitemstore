@@ -5,6 +5,7 @@ import (
 
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const stringHeapBucket string = "stringHeap"
@@ -17,13 +18,13 @@ func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 
 	// Sanity check index, we should never receive an empty value
 	if len(index) == 0 {
-		return 0, fmt.Errorf("zero length index passed to setString")
+		return 0, errors.New("zero length index passed to setString")
 	}
 
 	// Fetch the heap bucket
 	var heap *bolt.Bucket
 	if heap = tx.Bucket([]byte(stringHeapBucket)); heap == nil {
-		return 0, fmt.Errorf("%s not found", stringHeapBucket)
+		return 0, errors.Errorf("%s not found", stringHeapBucket)
 	}
 
 	// If it already exists, early exit
@@ -35,14 +36,15 @@ func setString(index string, tx *bolt.Tx) (StringHeapID, error) {
 	// fmt.Println("need sequence number for unseen string", index, len(index))
 	seq, err := heap.NextSequence()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get NextSequence in %s", stringHeapBucket)
+		return 0, errors.Errorf("failed to get NextSequence in %s",
+			stringHeapBucket)
 	}
 	heap.Put([]byte(index), i32tob(uint32(seq)))
 
 	// Also add it to the inverseBucket
 	var inverter *bolt.Bucket
 	if inverter = tx.Bucket([]byte(stringHeapInverseBucket)); inverter == nil {
-		return 0, fmt.Errorf("%s not found", stringHeapInverseBucket)
+		return 0, errors.Errorf("%s not found", stringHeapInverseBucket)
 	}
 	inverter.Put(i32tob(uint32(seq)), []byte(index))
 
@@ -54,13 +56,13 @@ func getString(index string, tx *bolt.Tx) (StringHeapID, error) {
 	// Fetch the heap bucket
 	var heap *bolt.Bucket
 	if heap = tx.Bucket([]byte(stringHeapBucket)); heap == nil {
-		return 0, fmt.Errorf("%s not found", stringHeapBucket)
+		return 0, errors.Errorf("%s not found", stringHeapBucket)
 	}
 
 	// If it already exists, early exit
 	var result []byte
 	if result = heap.Get([]byte(index)); result == nil {
-		return 0, fmt.Errorf("failed to find index in string heap")
+		return 0, errors.Errorf("failed to find index in string heap")
 	}
 
 	return StringHeapIDFromBytes(result), nil
@@ -98,7 +100,7 @@ func SetStrings(indices []string, db *bolt.DB) ([]StringHeapID, error) {
 func setStringsForItems(source []stash.Item, target []Item, tx *bolt.Tx) error {
 
 	if len(source) != len(target) {
-		return fmt.Errorf("length of provided source does not match target, %d!=%d",
+		return errors.Errorf("length of provided source does not match target, %d!=%d",
 			len(source), len(target))
 	}
 

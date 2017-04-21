@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const stashBucket string = "stashes"
@@ -33,27 +34,27 @@ type ItemUpdateStats struct {
 // between expected and other is reported as an error.
 func (s *StashUpdateStats) Compare(other *StashUpdateStats) error {
 	if s.Added != other.Added {
-		return fmt.Errorf("mismatched Added, expected %d, got %d",
+		return errors.Errorf("mismatched Added, expected %d, got %d",
 			s.Added, other.Added)
 	}
 	if s.Updated != other.Updated {
-		return fmt.Errorf("mismatched Updated, expected %d, got %d",
+		return errors.Errorf("mismatched Updated, expected %d, got %d",
 			s.Updated, other.Updated)
 	}
 	if s.Intact != other.Intact {
-		return fmt.Errorf("mismatched Intact, expected %d, got %d",
+		return errors.Errorf("mismatched Intact, expected %d, got %d",
 			s.Intact, other.Intact)
 	}
 	if s.Items.Added != other.Items.Added {
-		return fmt.Errorf("mismatched Items.Added, expected %d, got %d",
+		return errors.Errorf("mismatched Items.Added, expected %d, got %d",
 			s.Items.Added, other.Items.Added)
 	}
 	if s.Items.Removed != other.Items.Removed {
-		return fmt.Errorf("mismatched Items.Removed, expected %d, got %d",
+		return errors.Errorf("mismatched Items.Removed, expected %d, got %d",
 			s.Items.Removed, other.Items.Removed)
 	}
 	if s.Items.Kept != other.Items.Kept {
-		return fmt.Errorf("mismatched Items.Kept, expected %d, got %d",
+		return errors.Errorf("mismatched Items.Kept, expected %d, got %d",
 			s.Items.Kept, other.Items.Kept)
 	}
 	return nil
@@ -96,7 +97,7 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 
 	var old Stash
 	if _, err := old.UnmarshalMsg(oldSerial); err != nil {
-		return fmt.Errorf("failed to unmarshal oldSerial")
+		return errors.New("failed to unmarshal oldSerial")
 	}
 
 	// Determine which items get added and which get removed
@@ -116,14 +117,13 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 	// Translate the ids to remove
 	removeIDs, err := GetGGGIDTranslations(remove, newStash.League, tx)
 	if err != nil {
-		return fmt.Errorf("failed to translate GGGIDs to local IDs, err=%s",
-			err)
+		return errors.Wrap(err, "failed to translate GGGIDs to local IDs")
 	}
 	// And get rid of those to remove
 	// TODO: look into sorting these before removal for performance benefits
 	err = removeItems(removeIDs, newStash.League, tx)
 	if err != nil {
-		return fmt.Errorf("failed to removeItems, err=%s", err)
+		return errors.Wrap(err, "failed to removeItems")
 	}
 
 	// Filter out the Items to add from the items contained in this update
@@ -140,7 +140,7 @@ func stashDiffUpdate(oldSerial []byte, newStash Stash, newItems []Item,
 
 	// Add the items
 	if _, err := addItems(toAdd, tx); err != nil {
-		return fmt.Errorf("failed to addItems, err=%s", err)
+		return errors.Wrap(err, "failed to addItems")
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func AddStashes(stashes []Stash, items [][]Item,
 		return nil, nil
 	}
 	if len(stashes) != len(items) {
-		return nil, fmt.Errorf("each stash must have matching items, got %d!=%d",
+		return nil, errors.Errorf("each stash must have matching items, got %d!=%d",
 			len(stashes), len(items))
 	}
 
@@ -172,7 +172,7 @@ func AddStashes(stashes []Stash, items [][]Item,
 			// Serialize the stash
 			serial, err := stash.MarshalMsg(nil)
 			if err != nil {
-				return fmt.Errorf("failed to Marshal Stash, err=%s", err)
+				return errors.Wrap(err, "failed to Marshal Stash")
 			}
 
 			meta := getStashMetaBucket(stash.League, tx)
@@ -183,8 +183,8 @@ func AddStashes(stashes []Stash, items [][]Item,
 				// Handle trivial case of just needing to add the entire stash
 				// Add the items for this stash
 				if _, err := addItems(items[i], tx); err != nil {
-					return fmt.Errorf("failed to add items for stash id=%s, err=%s",
-						stash.ID, err)
+					return errors.Wrapf(err, "failed to add items for stash id=%s",
+						stash.ID)
 				}
 				stats.Added++
 				stats.Items.Added += len(items[i])

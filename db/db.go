@@ -2,9 +2,9 @@ package db
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 // DBLocation is the on-disk file containing our database
@@ -64,7 +64,7 @@ func setupBuckets(db *bolt.DB) error {
 		for _, bucket := range bucketNames {
 			_, err := tx.CreateBucketIfNotExists([]byte(bucket))
 			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
+				return errors.Wrapf(err, "create bucket: %s", bucket)
 			}
 		}
 		return nil
@@ -81,22 +81,23 @@ func Boot(path string) (*bolt.DB, error) {
 
 	db, err := bolt.Open(path, 777, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open %s as boltdb, err=%s", DBLocation, err)
+		return nil, errors.Wrapf(err,
+			"failed to open %s as boltdb", DBLocation)
 	}
 
 	// Ensure root level buckets exist
 	if err := setupBuckets(db); err != nil {
-		return nil, fmt.Errorf("failed to setup buckets, err=%s", err)
+		return nil, errors.Wrap(err, "failed to setup buckets")
 	}
 
 	// Ensure league level buckets exist on each league
 	leagueStrings, err := ListLeagues(db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list leagues, err=%s", err)
+		return nil, errors.Wrap(err, "failed to list leagues")
 	}
 	leagueIDs, err := GetLeagues(leagueStrings, db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert league strings to ids, err=%s", err)
+		return nil, errors.Wrap(err, "failed to convert league strings to ids")
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
 
@@ -110,7 +111,7 @@ func Boot(path string) (*bolt.DB, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to checkLeagues, err=%s", err)
+		return nil, errors.Wrap(err, "failed to checkLeagues")
 	}
 
 	return db, nil

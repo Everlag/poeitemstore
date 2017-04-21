@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const indiceBucket string = "indices"
@@ -49,8 +50,9 @@ func getItemModIndexBucket(rootType, rootFlavor, mod StringHeapID,
 			prevBucket, err = currentBucket.CreateBucket(keyBytes)
 			if err != nil {
 				return nil,
-					fmt.Errorf("failed to add index intermediary bucket bucket, bucket=%s, chain=%v, err=%s",
-						key, keys, err)
+					errors.Wrapf(err,
+						"failed to add index intermediary bucket bucket, bucket=%s, chain=%v",
+						key, keys)
 			}
 		}
 		currentBucket = prevBucket
@@ -77,7 +79,7 @@ func getItemModIndexBucketRO(rootType, rootFlavor, mod StringHeapID,
 		keyBytes := key.ToBytes()
 		prevBucket := currentBucket.Bucket(keyBytes)
 		if prevBucket == nil {
-			return nil, fmt.Errorf("invalid bucket, key=%d, chain=%v", key, keys)
+			return nil, errors.Errorf("invalid bucket, key=%d, chain=%v", key, keys)
 		}
 		currentBucket = prevBucket
 	}
@@ -134,12 +136,12 @@ func decodeModIndexKey(key []byte) ([]uint16, error) {
 
 	// Basic sanity check
 	if len(key) < ModIndexKeySuffixLength {
-		return nil, fmt.Errorf("invalid index key passed, less than length of suffix")
+		return nil, errors.New("invalid index key passed, less than length of suffix")
 	}
 
 	// Ensure we are divisible by 2 following the removal of the suffix
 	if (len(key)-ModIndexKeySuffixLength)%2 != 0 {
-		return nil, fmt.Errorf("invalid index key passed, values malformed")
+		return nil, errors.New("invalid index key passed, values malformed")
 	}
 
 	valueBytes := key[:len(key)-ModIndexKeySuffixLength]
@@ -160,7 +162,7 @@ func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 
 	// Sanity check passed in transaction, better to do this than panic.
 	if !tx.Writable() {
-		return 0, fmt.Errorf("cannot IndexItems on readonly transaction")
+		return 0, errors.New("cannot IndexItems on readonly transaction")
 	}
 
 	// Silently exit when no items present to add
@@ -178,7 +180,7 @@ func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 			itemModBucket, err := getItemModIndexBucket(item.RootType, item.RootFlavor,
 				mod.Mod, item.League, tx)
 			if err != nil {
-				return 0, fmt.Errorf("failed to get item mod bucket")
+				return 0, errors.New("failed to get item mod bucket")
 			}
 
 			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
@@ -208,7 +210,7 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 
 	// Sanity check passed in transaction, better to do this than panic.
 	if !tx.Writable() {
-		return fmt.Errorf("cannot IndexItems on readonly transaction")
+		return errors.New("cannot IndexItems on readonly transaction")
 	}
 
 	// Silently exit when no items present to add
@@ -223,7 +225,7 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 			itemModBucket, err := getItemModIndexBucket(item.RootType, item.RootFlavor,
 				mod.Mod, item.League, tx)
 			if err != nil {
-				return fmt.Errorf("failed to get item mod bucket")
+				return errors.New("failed to get item mod bucket")
 			}
 
 			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
@@ -262,7 +264,7 @@ func IndexEntryCount(db *bolt.DB) (int, error) {
 		for _, id := range leagueIDs {
 			b := getLeagueIndexBucket(id, tx)
 			if b == nil {
-				return fmt.Errorf("%s bucket not found", itemStoreBucket)
+				return errors.Errorf("%s bucket not found", itemStoreBucket)
 			}
 			stats := b.Stats()
 			count += stats.KeyN

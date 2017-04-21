@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const idTranslateBucket string = "idTranslator"
@@ -36,8 +37,9 @@ func getTranslation(league LeagueHeapID,
 	var translator *bolt.Bucket
 
 	if translator = getIDTranslateItemBucket(league, tx); translator == nil {
-		return ID{}, fmt.Errorf("translator bucket for league not found, league=%d",
-			league)
+		return ID{},
+			errors.Errorf("translator bucket for league not found, league=%d",
+				league)
 	}
 
 	// If it already exists, early exit
@@ -50,7 +52,7 @@ func getTranslation(league LeagueHeapID,
 	// Assign it a new sequence number as necessary
 	seq, err := translator.NextSequence()
 	if err != nil {
-		return ID{}, fmt.Errorf("failed to get NextSequence in %s",
+		return ID{}, errors.Errorf("failed to get NextSequence in %s",
 			idTranslateBucket)
 	}
 	id := IDFromSequence(seq)

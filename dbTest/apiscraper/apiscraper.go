@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Everlag/poeitemstore/stash"
+	"github.com/pkg/errors"
 )
 
 // FetchAndCompress fetches a given changeID and returns its compressed
@@ -18,7 +19,7 @@ func FetchAndCompress(changeID string) (string,
 	*stash.CompressedResponse, error) {
 	response, err := stash.FetchUpdate(changeID)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch update, err=%s", err)
+		return "", nil, errors.Wrap(err, "failed to fetch update")
 	}
 
 	comp, err := stash.NewCompressedResponse(response)
@@ -39,7 +40,7 @@ func FetchTillLimit(changeID string,
 		fmt.Printf("id=%s fetching\n", changeID)
 		changeID, comp, err = FetchAndCompress(changeID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch and compress, err=%s", err)
+			return nil, errors.Wrap(err, "failed to fetch and compress")
 		}
 
 		set.AddResponse(changeID, *comp)
@@ -59,17 +60,17 @@ func Unpack(changeID, path string) (*stash.Response, error) {
 	set, err := stash.OpenChangeSet(path)
 	if err != nil {
 		return nil,
-			fmt.Errorf("failed to open changeset, err=%s", err)
+			errors.Wrap(err, "failed to open changeset")
 	}
 
 	comp, ok := set.GetCompByChangeID(changeID)
 	if !ok {
-		return nil, fmt.Errorf("failed to find response with corresponding id")
+		return nil, errors.New("failed to find response with corresponding id")
 	}
 
 	resp, err := comp.Decompress()
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress change, err=%s", err)
+		return nil, errors.Wrap(err, "failed to decompress change")
 	}
 
 	return resp, nil
@@ -81,20 +82,20 @@ func Unpack(changeID, path string) (*stash.Response, error) {
 func SaveResponse(changeID string, resp stash.Response) error {
 	json, err := resp.MarshalJSON()
 	if err != nil {
-		return fmt.Errorf("failed to marshal response, err=%s", err)
+		return errors.Wrap(err, "failed to marshal response")
 	}
 
 	fileName := fmt.Sprintf("%s.json", changeID)
 
 	f, err := os.OpenFile(fileName, os.O_CREATE, 0777)
 	if err != nil {
-		return fmt.Errorf("failed to open file, err=%s", err)
+		return errors.Wrap(err, "failed to open file")
 	}
 	defer f.Close()
 
 	_, err = f.Write(json)
 	if err != nil {
-		return fmt.Errorf("failed to write file, err=%s", err)
+		return errors.Wrap(err, "failed to write file")
 	}
 	return nil
 }

@@ -1,11 +1,10 @@
 package db
 
 import (
-	"fmt"
-
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const updateSnapshotHistoryBuckets = "updateSnapshotHistory"
@@ -17,17 +16,17 @@ func RecordChangeIDWasEntered(changeID string, db *bolt.DB) error {
 
 		b := tx.Bucket([]byte(updateSnapshotHistoryBuckets))
 		if b == nil {
-			return fmt.Errorf("propertyNameBucket bucket not found")
+			return errors.New("propertyNameBucket bucket not found")
 		}
 
 		// Ensure this was not previously entered
 		if value := b.Get([]byte(changeID)); value != nil {
-			return fmt.Errorf("previous entry time exists for changeID")
+			return errors.New("previous entry time exists for changeID")
 		}
 
 		nowJSON, err := time.Now().MarshalBinary()
 		if err != nil {
-			return fmt.Errorf("failed to marshal time.Now to json")
+			return errors.New("failed to marshal time.Now to json")
 		}
 		b.Put([]byte(changeID), nowJSON)
 
@@ -43,7 +42,7 @@ func UpdateWasEntered(changeID string, db *bolt.DB) (bool, error) {
 
 		b := tx.Bucket([]byte(updateSnapshotHistoryBuckets))
 		if b == nil {
-			return fmt.Errorf("propertyNameBucket bucket not found")
+			return errors.New("propertyNameBucket bucket not found")
 		}
 
 		value := b.Get([]byte(changeID))

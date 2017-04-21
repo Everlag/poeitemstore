@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
 const leagueHeapBucket string = "leagueHeap"
@@ -64,7 +65,7 @@ func checkLeague(leagueBucket *bolt.Bucket, tx *bolt.Tx) error {
 	for _, b := range leagueSubBuckets {
 		_, err := leagueBucket.CreateBucketIfNotExists([]byte(b))
 		if err != nil {
-			return fmt.Errorf("failed to add league bucket, bucket=%s, err=%s", b, err)
+			return errors.Wrapf(err, "failed to add league bucket, bucket=%s", b)
 		}
 	}
 
@@ -79,7 +80,7 @@ func setLeague(index string, tx *bolt.Tx) (LeagueHeapID, error) {
 	// Fetch the heap bucket
 	var heap *bolt.Bucket
 	if heap = tx.Bucket([]byte(leagueHeapBucket)); heap == nil {
-		return 0, fmt.Errorf("%s not found", leagueHeapBucket)
+		return 0, errors.Errorf("%s not found", leagueHeapBucket)
 	}
 
 	// If it already exists, early exit
@@ -90,14 +91,14 @@ func setLeague(index string, tx *bolt.Tx) (LeagueHeapID, error) {
 	// If it doesn't, we need a sequence number
 	seq, err := heap.NextSequence()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get NextSequence in %s", leagueHeapBucket)
+		return 0, errors.Errorf("failed to get NextSequence in %s", leagueHeapBucket)
 	}
 	heap.Put([]byte(index), LeagueHeapIDFromSequence(seq).ToBytes())
 
 	// Also add it to the inverseBucket
 	var inverter *bolt.Bucket
 	if inverter = tx.Bucket([]byte(leagueHeapInverseBucket)); inverter == nil {
-		return 0, fmt.Errorf("%s not found", leagueHeapInverseBucket)
+		return 0, errors.Errorf("%s not found", leagueHeapInverseBucket)
 	}
 	inverter.Put(LeagueHeapIDFromSequence(seq).ToBytes(), []byte(index))
 
@@ -109,13 +110,13 @@ func getLeague(index string, tx *bolt.Tx) (LeagueHeapID, error) {
 	// Fetch the heap bucket
 	var heap *bolt.Bucket
 	if heap = tx.Bucket([]byte(leagueHeapBucket)); heap == nil {
-		return 0, fmt.Errorf("%s not found", leagueHeapBucket)
+		return 0, errors.Errorf("%s not found", leagueHeapBucket)
 	}
 
 	// If it already exists, early exit
 	var result []byte
 	if result = heap.Get([]byte(index)); result == nil {
-		return 0, fmt.Errorf("failed to find index in league heap")
+		return 0, errors.Errorf("failed to find index in league heap")
 	}
 
 	return LeagueHeapIDFromBytes(result), nil
@@ -174,7 +175,7 @@ func ListLeagues(db *bolt.DB) ([]string, error) {
 		// Fetch the heap bucket
 		var heap *bolt.Bucket
 		if heap = tx.Bucket([]byte(leagueHeapBucket)); heap == nil {
-			return fmt.Errorf("%s not found", leagueHeapBucket)
+			return errors.Errorf("%s not found", leagueHeapBucket)
 		}
 
 		c := heap.Cursor()
