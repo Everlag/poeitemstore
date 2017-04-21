@@ -309,7 +309,7 @@ func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
 			bdb, t)
 
 		// This needs to be done AFTER the database has been populated
-		query, _ := MultiModSearchToItemStoreQuery(search, bdb, t)
+		query, league := MultiModSearchToItemStoreQuery(search, bdb, t)
 
 		_, err := db.AddStashes(stashes, items, bdb)
 		if err != nil {
@@ -322,6 +322,23 @@ func TestItemStoreQuerySingleStashFindNone(t *testing.T) {
 			t.Fatalf("failed to run query, err=%s", err)
 		}
 		if len(ids) > 0 {
+			t.Logf("found ids are %v", ids)
+			// Fetch the items so we can grab their GGGIDs
+			foundItems := make([]db.Item, len(ids))
+			err = bdb.View(func(tx *bolt.Tx) error {
+				for i, id := range ids {
+					item, err := db.GetItemByID(id, league, tx)
+					if err != nil {
+						return errors.Wrap(err, "failed to find item")
+					}
+					foundItems[i] = item
+				}
+				return nil
+			})
+			t.Log("found items are")
+			for _, item := range foundItems {
+				t.Logf("    %s", item.Name.Inflate(bdb))
+			}
 			t.Fatalf("found items when impossible")
 		}
 	})
