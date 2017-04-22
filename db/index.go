@@ -90,12 +90,12 @@ func getItemModIndexBucketRO(rootType, rootFlavor, mod StringHeapID,
 
 // ModIndexKeySuffixLength allows us to fetch variable numbers
 // of pre-pended values given their length.
-const ModIndexKeySuffixLength = TimestampSize + 2
+const ModIndexKeySuffixLength = TimestampSize
 
 // encodeModIndexKey generates a mod key based off of the provided data
 //
 // The mod index key is generated as [mod.Values..., now, updateSequence]
-func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte {
+func encodeModIndexKey(mod ItemMod, now Timestamp) []byte {
 
 	// Pre-allocate index key so the entire key can be
 	// encoded with a single allocation.
@@ -103,10 +103,8 @@ func encodeModIndexKey(mod ItemMod, now Timestamp, updateSequence uint16) []byte
 	indexKey := make([]byte, ModIndexKeySuffixLength+modsLength)
 
 	// Generate the suffix
-	sequenceBytes := i16tob(updateSequence)
 	suffix := (indexKey[modsLength:])[:0] // Deal with pre-allocated space
-	suffix = append(suffix, now[:]...)
-	suffix = append(suffix, sequenceBytes...)
+	suffix = append(suffix, now.TruncateToIndexBucket()[:]...)
 
 	if len(suffix) != ModIndexKeySuffixLength {
 		panic(fmt.Sprintf("unexpected suffix length, got %d, expected %d",
@@ -181,17 +179,34 @@ func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 				return 0, errors.New("failed to get item mod bucket")
 			}
 
-			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
+			modKey := encodeModIndexKey(mod, item.When)
 
-			// We need to make a copy of the item ID or bolt
-			// will get a buffer reused for all items.
-			//
-			// Without this, all index entries will point to the last
-			// item added.
-			idCopy := make([]byte, IDSize)
-			copy(idCopy, item.ID[:])
+			// Check for pre-existing items in the bucket, if none, we establish
+			// the bucket
+			existing := itemModBucket.Get(modKey)
+			if existing == nil {
+				// We need to make a copy of the item ID or bolt
+				// will get a buffer reused for all items.
+				//
+				// Without this, all index entries will point to the last
+				// item added.
+				idCopy := make([]byte, IDSize)
+				copy(idCopy, item.ID[:])
 
-			itemModBucket.Put(modKey, idCopy)
+				itemModBucket.Put(modKey, idCopy)
+			} else {
+				// We assume item not already present in bucket.
+				// If it is, we end up with a duplicate.
+				//
+				// Allocate a buffer large enough for an append
+				// without another allocation.
+				// Yes, this looks super dirty. TODO: cleanup D:
+				appended := make([]byte, len(existing)+IDSize)[:0]
+				appended = append(appended, existing...)
+				appended = append(appended, item.ID[:]...)
+
+				itemModBucket.Put(modKey, appended)
+			}
 			added++
 		}
 	}
@@ -226,7 +241,7 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 				return errors.New("failed to get item mod bucket")
 			}
 
-			modKey := encodeModIndexKey(mod, item.When, item.UpdateSequence)
+			modKey := encodeModIndexKey(mod, item.When)
 
 			// We need to make a copy of the item ID or bolt
 			// will get a buffer reused for all items.

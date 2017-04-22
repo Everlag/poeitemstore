@@ -116,36 +116,43 @@ func (q *IndexQuery) clearContext() {
 
 // checkPair determines if a pair is acceptable for our query
 // and modifes the associated modIndex Cursor appropriately.
-func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (bool, error) {
+//
+// Returns the number of item IDs handled. Zero implies
+// the cursor is no longer valid.
+func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (int, error) {
 	// Grab the value
 	values, err := decodeModIndexKey(k)
 	if err != nil {
-		return false,
+		return 0,
 			errors.Wrap(err, "failed to decode mod index key")
 	}
 	if len(values) == 0 {
-		return false,
+		return 0,
 			errors.Errorf("decoded item mod index key to no values, key=%v", k)
 	}
 
 	// Ensure the mod is the correct value
 	valid := values[0] >= q.minModValues[modIndex]
+	var idCount int
 	if valid {
-		if len(v) != IDSize {
-			panic(fmt.Sprintf("malformed id value in index, incorrect length; id=%v", v))
+		if len(v)%IDSize != 0 {
+			panic(fmt.Sprintf("malformed ids value in index, ids not divisible; id=%v", v))
 		}
-		// NOTE: the copy here is actually completely required
-		// due to the fact that boltdb makes no guarantee regarding what
-		// keys and value slices contain when outside a transaction.
-		var id ID
-		copy(id[:], v)
-		q.ctx.sets[modIndex][id] = struct{}{}
+		idCount = len(v) / IDSize
+		for pos := 0; pos < idCount*IDSize; pos += IDSize {
+			// NOTE: the copy here is actually completely required
+			// due to the fact that boltdb makes no guarantee regarding what
+			// keys and value slices contain when outside a transaction.
+			var id ID
+			copy(id[:], v[pos:pos+IDSize])
+			q.ctx.sets[modIndex][id] = struct{}{}
+		}
 	} else {
 		// Remove from cursors we're interested in
 		q.ctx.removeCursor(modIndex)
 	}
 
-	return valid, nil
+	return idCount, nil
 }
 
 // stide performs a single stride on the query, filling sets on ctx
@@ -161,7 +168,7 @@ func (q *IndexQuery) stride() error {
 		}
 
 		// Perform the actual per-cursor stride
-		for index := 0; index < LookupItemsMultiModStrideLength; index++ {
+		for index := 0; index < LookupItemsMultiModStrideLength; {
 
 			// Grab a pair
 			k, v := c.Prev()
@@ -175,15 +182,17 @@ func (q *IndexQuery) stride() error {
 				}
 				continue
 			}
-			valid, err := q.checkPair(k, v, i)
+			var err error
+			countFound, err := q.checkPair(k, v, i)
 			if err != nil {
 				return errors.Wrap(err, "failed to check value pair")
 			}
 
 			// If its not a valid pair, we're done iterating on this cursor
-			if !valid {
+			if countFound < 1 {
 				break
 			}
+			index += countFound
 		}
 	}
 	return nil
