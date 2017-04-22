@@ -57,9 +57,14 @@ type Timestamp [TimestampSize]byte
 
 // NewTimestamp returns a Timestamp at the current time
 func NewTimestamp() Timestamp {
-	now := time.Now().Unix()
+	return TimeToTimestamp(time.Now())
+}
 
-	nowBytes := i64tob(uint64(now))
+// TimeToTimestamp returns a Timestamp representing the passed time.Time
+func TimeToTimestamp(when time.Time) Timestamp {
+	secs := when.Unix()
+
+	nowBytes := i64tob(uint64(secs))
 	nowTrunc := nowBytes[TimestampSize:]
 
 	var ts Timestamp
