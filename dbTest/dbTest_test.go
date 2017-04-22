@@ -11,6 +11,8 @@ import (
 
 	"path/filepath"
 
+	"time"
+
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/stash"
@@ -18,6 +20,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinylib/msgp/msgp"
 )
+
+// TimeOfStart defines the constant time all tests start at
+// for the purposes of stash timing.
+var TimeOfStart, _ = time.Parse(time.RFC822, "21 Apr 17 15:04 MST")
 
 // TempEnviron represents the complete environment for
 // a test which must be removed during cleanup
@@ -101,7 +107,8 @@ func GetTestStashUpdate(path string, bdb *bolt.DB,
 			path, err)
 	}
 
-	cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+	cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, TimeOfStart,
+		bdb)
 	if err != nil {
 		t.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 	}

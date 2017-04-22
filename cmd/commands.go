@@ -11,6 +11,8 @@ import (
 
 	"strconv"
 
+	"time"
+
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
@@ -70,7 +72,7 @@ var tryCompactyCmd = &cobra.Command{
 		}
 
 		// Flatten the items
-		_, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		_, cItems, err := db.StashStashToCompact(resp.Stashes, time.Now(), bdb)
 		if err != nil {
 			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
 			return
@@ -93,7 +95,8 @@ var storeItemsCmd = &cobra.Command{
 		}
 
 		// Flatten the items
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes,
+			time.Now(), bdb)
 		if err != nil {
 			fmt.Printf("failed to convert fat stashes to compact, err=%s\n", err)
 			return

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/Everlag/poeitemstore/stash"
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
@@ -137,11 +139,11 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 
 // StashStashToCompact converts fat Item records to their compact form
 // while also stripping items out in their compact form.
-func StashStashToCompact(stashes []stash.Stash,
+func StashStashToCompact(stashes []stash.Stash, when time.Time,
 	db *bolt.DB) ([]Stash, [][]Item, error) {
 
 	// Grab a new timestamp, all of the Stashes will share the same time
-	when := NewTimestamp()
+	whenTS := TimeToTimestamp(when)
 
 	// Compact stashes and flatten items
 	compact := make([]Stash, len(stashes))[:0] // Sliced to zero to allow append
@@ -191,7 +193,7 @@ func StashStashToCompact(stashes []stash.Stash,
 	}
 
 	// Grab the compact items as their flat form
-	compactItems, err := StashItemsToCompact(flatItems, when, db)
+	compactItems, err := StashItemsToCompact(flatItems, whenTS, db)
 	if err != nil {
 		err = errors.Wrap(err, "failed to compact items")
 		return nil, nil, err

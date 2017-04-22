@@ -30,13 +30,14 @@ func BenchmarkCompactAddStashesFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		_, _, err := db.StashStashToCompact(resp.Stashes, bdb)
+		_, _, err := db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
 		b.StartTimer()
 
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, TimeOfStart,
+			bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
@@ -76,13 +77,13 @@ func BenchmarkCompactFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		_, _, err := db.StashStashToCompact(resp.Stashes, bdb)
+		_, _, err := db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
 		b.StartTimer()
 
-		_, _, err = db.StashStashToCompact(resp.Stashes, bdb)
+		_, _, err = db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
@@ -118,7 +119,8 @@ func BenchmarkAddStashesFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes,
+			TimeOfStart, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}

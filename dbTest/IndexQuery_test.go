@@ -144,7 +144,8 @@ func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
 			t.Logf("processing changeID=%s", id)
 		}
 
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, TimeOfStart,
+			bdb)
 		if err != nil {
 			t.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
