@@ -22,6 +22,9 @@ func BenchmarkCompactAddStashesFast(b *testing.B) {
 		b.Fatalf("failed to decompress response")
 	}
 
+	// Define when so we can change over time
+	when := TimeOfStart
+
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -30,14 +33,13 @@ func BenchmarkCompactAddStashesFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		_, _, err := db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
+		_, _, err := db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
 		b.StartTimer()
 
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, TimeOfStart,
-			bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
@@ -46,6 +48,8 @@ func BenchmarkCompactAddStashesFast(b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to AddStashes, err=%s", err)
 		}
+
+		when = when.Add(TestTimeDeltas)
 	}
 
 }
@@ -69,6 +73,9 @@ func BenchmarkCompactFast(b *testing.B) {
 		b.Fatalf("failed to decompress response")
 	}
 
+	// Define when so we can change over time
+	when := TimeOfStart
+
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -77,16 +84,18 @@ func BenchmarkCompactFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		_, _, err := db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
+		_, _, err := db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
 		b.StartTimer()
 
-		_, _, err = db.StashStashToCompact(resp.Stashes, TimeOfStart, bdb)
+		_, _, err = db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
+
+		when = when.Add(TestTimeDeltas)
 	}
 
 }
@@ -111,6 +120,9 @@ func BenchmarkAddStashesFast(b *testing.B) {
 		b.Fatalf("failed to decompress response")
 	}
 
+	// Define when so we can change over time
+	when := TimeOfStart
+
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -119,8 +131,7 @@ func BenchmarkAddStashesFast(b *testing.B) {
 		// the time this takes from the benchmark
 		b.StopTimer()
 		bdb := NewTempDatabase(b)
-		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes,
-			TimeOfStart, bdb)
+		cStashes, cItems, err := db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
@@ -130,6 +141,8 @@ func BenchmarkAddStashesFast(b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to AddStashes, err=%s", err)
 		}
+
+		when = when.Add(TestTimeDeltas)
 	}
 
 }

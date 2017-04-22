@@ -2,6 +2,7 @@ package dbTest
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
@@ -122,8 +123,12 @@ type ChangeSetUse func(id string) error
 // to the provided DB then calling cb to do some work
 // on the database.
 //
+// when + timeDelta * changeIndex will be used as the provided
+// time for a Change.
+//
 // cb will we called for each entry in the ChangeSet
 func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
+	when time.Time, timeDelta time.Duration,
 	bdb *bolt.DB, t testing.TB) {
 
 	// Generate a mapping of change to id we'll need
@@ -158,6 +163,8 @@ func RunChangeSet(set stash.ChangeSet, cb ChangeSetUse,
 		if err := cb(id); err != nil {
 			t.Fatalf("failed to cb in RunChangeSet, err=%s", err)
 		}
+
+		when = when.Add(timeDelta)
 	}
 
 }
@@ -236,7 +243,7 @@ func testIndexQueryAgainstChangeSet(search cmd.MultiModSearch, path string,
 			t.Fatalf("failed subtest '%s'", id)
 		}
 		return nil
-	}, bdb, t)
+	}, TimeOfStart, TestTimeDeltas, bdb, t)
 
 	if !foundOnce {
 		t.Fatalf("failed to match any items across all queries")

@@ -3,6 +3,8 @@ package dbTest
 import (
 	"testing"
 
+	"time"
+
 	"github.com/Everlag/poeitemstore/cmd"
 	"github.com/Everlag/poeitemstore/db"
 	"github.com/boltdb/bolt"
@@ -12,6 +14,9 @@ var benchQueryResult []db.ID
 
 // setupBenchDB prepares a database with a ChangeSet located at path
 // and returns it.
+//
+// NOTE: we use a different time delta here to better represent
+// real operations of the index.
 func setupBenchDB(path string, b *testing.B) *bolt.DB {
 	bdb := NewTempDatabase(b)
 
@@ -22,7 +27,7 @@ func setupBenchDB(path string, b *testing.B) *bolt.DB {
 	// we only care about the end result
 	RunChangeSet(set, func(id string) error {
 		return nil
-	}, bdb, b)
+	}, TimeOfStart, time.Second*20, bdb, b)
 
 	return bdb
 }

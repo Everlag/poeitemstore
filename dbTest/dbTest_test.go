@@ -25,6 +25,15 @@ import (
 // for the purposes of stash timing.
 var TimeOfStart, _ = time.Parse(time.RFC822, "21 Apr 17 15:04 MST")
 
+// TestTimeDeltas represents the time that passes
+// between individual stash updates for the purposes of testing.
+// Benchmarks may use a different delta to better approximate real
+// scenarios.
+//
+// In reality, the delta would be on the order of ~4 seconds
+// so this results in a sparser than realistic benchmark.
+var TestTimeDeltas = time.Minute * 3
+
 // TempEnviron represents the complete environment for
 // a test which must be removed during cleanup
 type TempEnviron struct {
