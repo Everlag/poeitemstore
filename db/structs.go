@@ -49,8 +49,10 @@ func (id LeagueHeapID) ToBytes() []byte {
 
 // TimestampSize is the number of bytes used by Timestamp
 //
-// This is sized to minimize waste while
-const TimestampSize = 4
+// This is sized to minimize waste while keeping accuracy
+//
+// We discard the first 4 bytes as they're useless for our purposes.
+const TimestampSize = 8 - 4
 
 // Timestamp is a compact represenation of a unix timestamp
 type Timestamp [TimestampSize]byte
@@ -70,6 +72,22 @@ func TimeToTimestamp(when time.Time) Timestamp {
 	var ts Timestamp
 	copy(ts[:], nowTrunc)
 	return ts
+}
+
+// TimestampBucketAccuracyReduction is the number of rightward shifts
+// applied to a Timestamp to discretely bucket it for Indexing.
+const TimestampBucketAccuracyReduction = 7 // 7 representing ~2.1 minute buckets
+
+// TruncateToIndexBucket returns its reduced accuracy form such that
+// it can be used to bucket Timestamps into discrete index buckets.
+func (ts Timestamp) TruncateToIndexBucket() []byte {
+	// Convert the timestamp to a 64 bit int for easier shifting.
+	base := make([]byte, 8)
+	copy(base[TimestampSize:], ts[:])
+	rel := btoi64(base)
+	shifted := rel >> TimestampBucketAccuracyReduction
+	// Return the byte-wise version
+	return i64tob(shifted)[TimestampSize:]
 }
 
 // ToTime converts a compact Timestamp to a time.Time
