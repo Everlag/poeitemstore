@@ -12,12 +12,27 @@ import (
 
 var benchQueryResult []db.ID
 
+// IndexQueryBenchShortDelta represents a realistic, 4 second
+// delta between updates.
+//
+// With 11 updates, 88 seconds of realtime is covered which should result in
+// at least one set of non-sparse index buckets.
+var IndexQueryBenchShortDelta = time.Second * 4
+
+// IndexQueryBenchLongDelta represents a sparser, 20 second
+// delta between updates.
+//
+// This should pressure the index buckets significantly harder than
+// reality and thus represents the performance in a situation with
+// less amortization of fixed costs
+var IndexQueryBenchLongDelta = time.Second * 40
+
 // setupBenchDB prepares a database with a ChangeSet located at path
 // and returns it.
 //
 // NOTE: we use a different time delta here to better represent
 // real operations of the index.
-func setupBenchDB(path string, b *testing.B) *bolt.DB {
+func setupBenchDB(path string, delta time.Duration, b *testing.B) *bolt.DB {
 	bdb := NewTempDatabase(b)
 
 	// Fetch the changes we need
@@ -27,7 +42,7 @@ func setupBenchDB(path string, b *testing.B) *bolt.DB {
 	// we only care about the end result
 	RunChangeSet(set, func(id string) error {
 		return nil
-	}, TimeOfStart, time.Second*20, bdb, b)
+	}, TimeOfStart, delta, bdb, b)
 
 	return bdb
 }
@@ -60,14 +75,30 @@ func runBenchQuery(search cmd.MultiModSearch, bdb *bolt.DB, b *testing.B) {
 // be as hot as it can possibly be.
 func BenchmarkSingleIndexQueryFast(b *testing.B) {
 
-	bdb := setupBenchDB("testSet - 11 updates.msgp", b)
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	b.ReportAllocs()
-	b.ResetTimer()
+		b.ReportAllocs()
+		b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
-	}
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
+		}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
+		}
+	})
+
 }
 
 // BenchmarkFiveIndexQuery runs five queries on the database.
@@ -75,28 +106,44 @@ func BenchmarkSingleIndexQueryFast(b *testing.B) {
 // This should, hopefully, touch enough of the database to overflow the cache.
 func BenchmarkFiveIndexQueryFast(b *testing.B) {
 
-	bdb := setupBenchDB("testSet - 11 updates.msgp", b)
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	b.ReportAllocs()
-	b.ResetTimer()
+		b.ReportAllocs()
+		b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
-		runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
-		runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
-		runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
-		runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
-	}
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
+			runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
+			runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
+			runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
+			runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
+		}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
+			runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
+			runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
+			runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
+			runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
+		}
+	})
 }
 
-// BenchmarkInterleavedLeagueIndexQuery runs ten queries on the database,
+// BenchmarkMultiLeagueIndexQueryFast runs ten queries on the database,
 // each one alternating in league.
 //
 // This should, hopefully, touch enough of the database to overflow the cache.
-func BenchmarkInterleavedLeagueIndexQueryFast(b *testing.B) {
-
-	bdb := setupBenchDB("testSet - 11 updates.msgp", b)
-
+func BenchmarkMultiLeagueIndexQueryFast(b *testing.B) {
 	queries := []cmd.MultiModSearch{
 		QueryBootsMovespeedFireResist,
 		QueryAmuletColdCritMulti,
@@ -105,19 +152,41 @@ func BenchmarkInterleavedLeagueIndexQueryFast(b *testing.B) {
 		QueryHelmetRecoveryES,
 	}
 
-	b.ReportAllocs()
-	b.ResetTimer()
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	for i := 0; i < b.N; i++ {
+		b.ReportAllocs()
+		b.ResetTimer()
 
-		for _, q := range queries {
-			search := q.Clone()
-			runBenchQuery(search, bdb, b)
-			// Stash updates should have a mix of permanent and temp leagues
-			search.League = "Standard"
-			runBenchQuery(search, bdb, b)
+		for i := 0; i < b.N; i++ {
+			for _, q := range queries {
+				search := q.Clone()
+				runBenchQuery(search, bdb, b)
+				// Stash updates should have a mix of permanent and temp leagues
+				search.League = "Standard"
+				runBenchQuery(search, bdb, b)
+			}
 		}
-	}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			for _, q := range queries {
+				search := q.Clone()
+				runBenchQuery(search, bdb, b)
+				// Stash updates should have a mix of permanent and temp leagues
+				search.League = "Standard"
+				runBenchQuery(search, bdb, b)
+			}
+		}
+	})
 }
 
 // BenchmarkSingleIndexQuery runs a single query on the database.
@@ -126,14 +195,31 @@ func BenchmarkInterleavedLeagueIndexQueryFast(b *testing.B) {
 // be as hot as it can possibly be.
 func BenchmarkSingleIndexQuerySlow(b *testing.B) {
 
-	bdb := setupBenchDB("testSet - 140 updates.msgp", b)
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	b.ReportAllocs()
-	b.ResetTimer()
+		b.ReportAllocs()
+		b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
-	}
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
+
+		}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist, bdb, b)
+
+		}
+	})
 }
 
 // BenchmarkFiveIndexQuery runs five queries on the database.
@@ -141,27 +227,45 @@ func BenchmarkSingleIndexQuerySlow(b *testing.B) {
 // This should, hopefully, touch enough of the database to overflow the cache.
 func BenchmarkFiveIndexQuerySlow(b *testing.B) {
 
-	bdb := setupBenchDB("testSet - 140 updates.msgp", b)
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	b.ReportAllocs()
-	b.ResetTimer()
+		b.ReportAllocs()
+		b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
-		runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
-		runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
-		runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
-		runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
-	}
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
+			runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
+			runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
+			runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
+			runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
+		}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			runBenchQuery(QueryBootsMovespeedFireResist.Clone(), bdb, b)
+			runBenchQuery(QueryAmuletColdCritMulti.Clone(), bdb, b)
+			runBenchQuery(QueryRingStrengthIntES.Clone(), bdb, b)
+			runBenchQuery(QueryQuiverCritChance.Clone(), bdb, b)
+			runBenchQuery(QueryHelmetRecoveryES.Clone(), bdb, b)
+		}
+	})
+
 }
 
-// BenchmarkInterleavedLeagueIndexQuery runs ten queries on the database,
+// BenchmarkMultiLeagueIndexQuerySlow runs ten queries on the database,
 // each one alternating in league.
 //
 // This should, hopefully, touch enough of the database to overflow the cache.
-func BenchmarkInterleavedLeagueIndexQuerySlow(b *testing.B) {
-
-	bdb := setupBenchDB("testSet - 140 updates.msgp", b)
+func BenchmarkMultiLeagueIndexQuerySlow(b *testing.B) {
 
 	queries := []cmd.MultiModSearch{
 		QueryBootsMovespeedFireResist,
@@ -171,17 +275,39 @@ func BenchmarkInterleavedLeagueIndexQuerySlow(b *testing.B) {
 		QueryHelmetRecoveryES,
 	}
 
-	b.ReportAllocs()
-	b.ResetTimer()
+	b.Run("Dense", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchShortDelta, b)
 
-	for i := 0; i < b.N; i++ {
+		b.ReportAllocs()
+		b.ResetTimer()
 
-		for _, q := range queries {
-			search := q.Clone()
-			runBenchQuery(search, bdb, b)
-			// Stash updates should have a mix of permanent and temp leagues
-			search.League = "Standard"
-			runBenchQuery(search, bdb, b)
+		for i := 0; i < b.N; i++ {
+			for _, q := range queries {
+				search := q.Clone()
+				runBenchQuery(search, bdb, b)
+				// Stash updates should have a mix of permanent and temp leagues
+				search.League = "Standard"
+				runBenchQuery(search, bdb, b)
+			}
 		}
-	}
+	})
+
+	b.Run("Sparse", func(b *testing.B) {
+		bdb := setupBenchDB("testSet - 11 updates.msgp",
+			IndexQueryBenchLongDelta, b)
+
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			for _, q := range queries {
+				search := q.Clone()
+				runBenchQuery(search, bdb, b)
+				// Stash updates should have a mix of permanent and temp leagues
+				search.League = "Standard"
+				runBenchQuery(search, bdb, b)
+			}
+		}
+	})
 }
