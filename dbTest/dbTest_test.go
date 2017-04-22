@@ -161,10 +161,13 @@ func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
 
 	// Fetch the items so we can grab their GGGIDs
 	compact := make([]db.Item, 0)
+	// Keep track of the ID we failed to find
+	var badID db.ID
 	err := bdb.View(func(tx *bolt.Tx) error {
 		for _, id := range ids {
 			item, err := db.GetItemByID(id, league, tx)
 			if err != nil {
+				badID = id
 				return errors.Wrap(err, "failed to find item")
 			}
 			compact = append(compact, item)
@@ -173,7 +176,8 @@ func QueryResultsToItems(ids []db.ID, league db.LeagueHeapID,
 		return nil
 	})
 	if err != nil {
-		t.Fatalf("failed to find queried item in database")
+		t.Fatalf("failed to find queried item in database, id=%v, err=%s",
+			badID, err)
 	}
 	foundItems := make([]stash.Item, 0)
 	for _, tiny := range compact {
