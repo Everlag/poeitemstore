@@ -3,6 +3,8 @@ package db
 import (
 	"fmt"
 
+	"bytes"
+
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
 )
@@ -222,16 +224,17 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 			}
 
 			modKey := encodeModIndexKey(mod, item.When)
-
-			// We need to make a copy of the item ID or bolt
-			// will get a buffer reused for all items.
-			//
-			// Without this, all index entries will point to the last
-			// item added.
-			idCopy := make([]byte, IDSize)
-			copy(idCopy, item.ID[:])
-
-			itemModBucket.Delete(modKey)
+			existing := itemModBucket.Get(modKey)
+			wrapped := WrapIndexEntryBytes(existing)
+			wrapped.Remove(item.ID)
+			unwrapped := wrapped.Unwrap()
+			if unwrapped == nil {
+				// Nothing else resides at this index
+				itemModBucket.Delete(modKey)
+			} else {
+				// Add back with removed data
+				itemModBucket.Put(modKey, unwrapped)
+			}
 		}
 	}
 
@@ -255,6 +258,10 @@ func WrapIndexEntryBytes(in []byte) IndexEntry {
 }
 
 // Unwrap returns the backing array behind an indexEntry
+//
+// NOTE: this can return nil. Hence, check your return values
+// when the IndexEntry has had a destructive method called on it,
+// such as Remove
 func (entry *IndexEntry) Unwrap() []byte {
 	return entry.in
 }
@@ -282,6 +289,50 @@ func (entry *IndexEntry) Append(id ID) {
 		entry.in = appended
 	}
 
+}
+
+// Remove removes a given ID from the entry
+//
+// If the ID is the last of the entry, the backing slice is set
+// to nil. In that case, its the callers responsibility to ensure they
+// Unwrap a valid byte slice.
+func (entry *IndexEntry) Remove(id ID) {
+	// If the backing array is nil, then we can't remove an ID
+	// and the database is inconsistent.
+	if entry.in == nil {
+		panic(fmt.Sprintf("attempted to remove ID from nil IndexEntry, id=%v",
+			id))
+	}
+
+	// For removal, we Stride over the array in IDSize increments
+	// and call Equal to determine which index we remove.
+	index := -1 // Index is in terms of IDSize increments
+	for i := 0; i < len(entry.in); i += IDSize {
+		equal := bytes.Equal(id[:], entry.in[i:i+IDSize])
+		if equal {
+			index = i
+			break
+		}
+	}
+
+	// If we can't find the ID, invalid index state, so panic.
+	if index == -1 {
+		panic(fmt.Sprintf("attempted to remove non-existent ID, id=%v", id))
+	}
+
+	// Check if this is the last entry, if yes, then easy nil.
+	if len(entry.in) == IDSize {
+		entry.in = nil
+		return
+	}
+	// Remove the entry using fewest allocations possible.
+	//
+	// We have to asssume our internal buffer for the entry came from
+	// bolt, hence the new buffer to mutate.
+	removed := make([]byte, len(entry.in)-IDSize)[:0]
+	removed = append(removed, entry.in[:index]...)
+	removed = append(removed, entry.in[index+IDSize:]...)
+	entry.in = removed
 }
 
 // IndexEntryCount returns the number of index entries across all leagues

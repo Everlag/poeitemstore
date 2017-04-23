@@ -261,3 +261,85 @@ func TestIndexQuery11UpdatesColdCritMulti(t *testing.T) {
 	testIndexQueryAgainstChangeSet(QueryAmuletColdCritMulti.Clone(),
 		"testSet - 11 updates.msgp", t)
 }
+
+// Test removals to a single stash on a per-item level
+//
+// This also ensures items are properly removed from the index
+func TestIndexRemovalSingleStash(t *testing.T) {
+
+	t.Parallel()
+
+	bdb := NewTempDatabase(t)
+
+	// Define our search up here, it will be constant for all of
+	// our sub-tests
+	search := QueryRingStrengthIntES.Clone()
+
+	expected := []db.GGGID{
+		db.GGGIDFromUID("3d474bb6f4d2b3bf86c0911aac89b5c50bef1d556240f745936df3b7d78a1db1"),
+		db.GGGIDFromUID("0125dab1d32f9e28d5531900d0d654774e7d8fc1e26bc717ada8e49231990f61"),
+	}
+
+	// Test to ensure we can handle a single update
+	t.Run("Baseline", func(t *testing.T) {
+		stashes, items := GetTestStashUpdate("singleStash - 3ItemsAdded.json",
+			bdb, t)
+
+		_, err := db.AddStashes(stashes, items, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		// This needs to be done AFTER the database has been populated
+		query, league := MultiModSearchToIndexQuery(search, bdb, t)
+
+		// Run the search and translate into items
+		ids, err := query.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed to run query, err=%s", err)
+		}
+
+		foundItems := QueryResultsToItems(ids, league, bdb, t)
+		if len(foundItems) != len(expected) {
+			t.Logf("expected %d items, found %d items",
+				len(expected), len(foundItems))
+		}
+	})
+
+	// Keep the items we expect here.
+	//
+	// This will have items added between sub-tests when the database
+	// is being manipulated.
+	expected = []db.GGGID{
+		db.GGGIDFromUID("3d474bb6f4d2b3bf86c0911aac89b5c50bef1d556240f745936df3b7d78a1db1"),
+	}
+
+	t.Run("3ItemsRemoved", func(t *testing.T) {
+		stashes, items := GetTestStashUpdate("singleStash.json",
+			bdb, t)
+
+		_, err := db.AddStashes(stashes, items, bdb)
+		if err != nil {
+			t.Fatalf("failed to AddStashes, err=%s", err)
+		}
+
+		// This needs to be done AFTER the database has been populated
+		query, league := MultiModSearchToIndexQuery(search, bdb, t)
+
+		// Run the search and translate into items
+		ids, err := query.Run(bdb)
+		if err != nil {
+			t.Fatalf("failed to run query, err=%s", err)
+		}
+
+		// Two ways this can fail
+		// 1. we get back more items than what we know we should get
+		// 2. we fail to find an ID, in that case the QueryResultsToItems fails
+		foundItems := QueryResultsToItems(ids, league, bdb, t)
+		if len(foundItems) != len(expected) {
+			t.Fatalf("expected %d items, found %d items",
+				len(expected), len(foundItems))
+		}
+	})
+
+}
