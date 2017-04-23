@@ -184,29 +184,9 @@ func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 			// Check for pre-existing items in the bucket, if none, we establish
 			// the bucket
 			existing := itemModBucket.Get(modKey)
-			if existing == nil {
-				// We need to make a copy of the item ID or bolt
-				// will get a buffer reused for all items.
-				//
-				// Without this, all index entries will point to the last
-				// item added.
-				idCopy := make([]byte, IDSize)
-				copy(idCopy, item.ID[:])
-
-				itemModBucket.Put(modKey, idCopy)
-			} else {
-				// We assume item not already present in bucket.
-				// If it is, we end up with a duplicate.
-				//
-				// Allocate a buffer large enough for an append
-				// without another allocation.
-				// Yes, this looks super dirty. TODO: cleanup D:
-				appended := make([]byte, len(existing)+IDSize)[:0]
-				appended = append(appended, existing...)
-				appended = append(appended, item.ID[:]...)
-
-				itemModBucket.Put(modKey, appended)
-			}
+			wrapped := WrapIndexEntryBytes(existing)
+			wrapped.Append(item.ID)
+			itemModBucket.Put(modKey, wrapped.Unwrap())
 			added++
 		}
 	}
@@ -256,6 +236,51 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 	}
 
 	return nil
+
+}
+
+// IndexEntry represents bytes interpreted as an entry within the index
+//
+// Whenever possible, we avoid allocations.
+type IndexEntry struct {
+	in []byte
+}
+
+// WrapIndexEntryBytes wraps provided byte slice to allow
+// them to be interpreted as an indexEntry
+//
+// in can be nil.
+func WrapIndexEntryBytes(in []byte) IndexEntry {
+	return IndexEntry{in}
+}
+
+// Unwrap returns the backing array behind an indexEntry
+func (entry *IndexEntry) Unwrap() []byte {
+	return entry.in
+}
+
+// Append adds another ID to the entry
+//
+// If an id is already present in the id, we end up with a duplicate.
+// Such is life.
+func (entry *IndexEntry) Append(id ID) {
+	if entry.in == nil {
+		// Copy necessary due to boltdb semantics for passed buffers
+		entry.in = make([]byte, len(id))
+		copy(entry.in, id[:])
+	} else {
+		// We assume item not already present in bucket.
+		// If it is, we end up with a duplicate.
+		//
+		// Allocate a buffer large enough for an append
+		// without another allocation.
+		// Yes, this looks super dirty. TODO: cleanup D:
+		appended := make([]byte, len(entry.in)+IDSize)[:0]
+		appended = append(appended, entry.in...)
+		appended = append(appended, id[:]...)
+
+		entry.in = appended
+	}
 
 }
 
