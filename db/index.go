@@ -5,9 +5,7 @@ import (
 
 	"bytes"
 
-	"io"
-
-	"github.com/Smerity/govarint"
+	"github.com/Everlag/poeitemstore/intcoder"
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
 )
@@ -290,28 +288,21 @@ func (entry *IndexEntry) decompress() {
 		return
 	}
 
-	buf := bytes.NewBuffer(entry.in)
-	dec := govarint.NewU64Base128Decoder(buf)
-	in := make([]byte, len(entry.in)*2)[:0]
-	var id uint64
-	var err error
-	for {
-		id, err = dec.GetU64()
-		if err != nil {
-			break
+	// Preallocate
+	buf := make([]byte, 0, len(entry.in))
+	var dec intcoder.IntegerDecoder
+	dec.SetBytes(entry.in)
+
+	for dec.Next() {
+		decoded := uint64(dec.Read())
+		buf = append(buf, i64tob(decoded)...)
+		if err := dec.Error(); err != nil {
+			panic(fmt.Sprintf("failed to decode integer in IndexEntry, err=%s",
+				err))
 		}
-		idBytes := IDFromSequence(id)
-		in = append(in, idBytes[:]...)
-	}
-	if err != io.EOF {
-		if err == nil {
-			panic("nil error while decompressing, expected io.EOF")
-		}
-		panic(fmt.Sprintf("encountered non-EOF/nil error while decompressing, err=%s",
-			err))
 	}
 
-	entry.in = in
+	entry.in = buf
 }
 
 // compress compresses the internal buffer for an IndexEntry
@@ -330,18 +321,18 @@ func (entry *IndexEntry) compress() {
 		return
 	}
 
-	var buf bytes.Buffer
-	enc := govarint.NewU64Base128Encoder(&buf)
+	// Create a decoder preallocated for 50% compression
+	enc := intcoder.NewIntegerEncoder(len(entry.in) / 2)
 	for i := 0; i < len(entry.in); i += IDSize {
 		id := btoi64(entry.in[i : i+IDSize])
-		_, err := enc.PutU64(id)
-		if err != nil {
-			panic(fmt.Sprintf("failed to compress, err=%s", err))
-		}
+		enc.Write(int64(id))
 	}
-	enc.Close()
 
-	entry.in = buf.Bytes()
+	var err error
+	entry.in, err = enc.Bytes()
+	if err != nil {
+		panic(fmt.Sprintf("failed to int encode IndexEntry, err=%s", err))
+	}
 }
 
 // Append adds another ID to the entry
