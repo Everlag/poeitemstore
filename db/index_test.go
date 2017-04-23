@@ -3,7 +3,7 @@ package db
 import "testing"
 import "bytes"
 
-func TestIndexEntryCompressDecompress(t *testing.T) {
+func TestIndexEntryAppendGet(t *testing.T) {
 	ids := []ID{
 		IDFromSequence(1),
 		IDFromSequence(2),
