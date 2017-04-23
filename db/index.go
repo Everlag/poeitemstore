@@ -412,16 +412,24 @@ func (entry *IndexEntry) Remove(id ID) {
 
 // GetIDs returns all IDs in the entry.
 //
-// NOTE: this will allocate for days, so be warned
-func (entry *IndexEntry) GetIDs() []ID {
+// Provided array slice will be resized if necessary or a new one
+// will be created if passed nil. Updated slice will be returned.
+func (entry *IndexEntry) GetIDs(ids []ID) []ID {
 	entry.decompress()
 
-	ids := make([]ID, len(entry.in)/IDSize)
+	idCount := len(entry.in) / IDSize
+	if ids == nil {
+		ids = make([]ID, idCount)
+	}
+	if cap(ids) < idCount {
+		ids = make([]ID, idCount)
+	}
+	ids = ids[:0]
 
 	for i := 0; i < len(entry.in); i += IDSize {
 		var id ID
 		copy(id[:], entry.in[i:i+IDSize])
-		ids[i/IDSize] = id
+		ids = append(ids, id)
 	}
 
 	return ids

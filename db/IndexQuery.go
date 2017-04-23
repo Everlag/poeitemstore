@@ -43,6 +43,9 @@ type indexQueryContext struct {
 	// These are positionally related to the parent's IndexQuery.mods
 	cursors []*bolt.Cursor
 	sets    []map[ID]struct{}
+
+	// Keep allocated slice of ids on the context, save allocations.
+	idsScratch []ID
 }
 
 // Remove a given cursor from tracking on the context
@@ -101,7 +104,7 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	}
 
 	q.ctx = &indexQueryContext{
-		tx, validCursors, cursors, sets,
+		tx, validCursors, cursors, sets, nil,
 	}
 
 	return nil
@@ -134,8 +137,8 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (int, error) {
 	var idCount int
 	if valid {
 		wrapped := WrapIndexEntryBytes(v)
-		ids := wrapped.GetIDs()
-		for _, id := range ids {
+		q.ctx.idsScratch = wrapped.GetIDs(q.ctx.idsScratch)
+		for _, id := range q.ctx.idsScratch {
 			q.ctx.sets[modIndex][id] = struct{}{}
 		}
 	} else {

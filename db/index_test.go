@@ -23,7 +23,7 @@ func TestIndexEntryCompressDecompress(t *testing.T) {
 	tiny := entry.Unwrap()
 
 	tinyEntry := WrapIndexEntryBytes(tiny)
-	tinyIDs := tinyEntry.GetIDs()
+	tinyIDs := tinyEntry.GetIDs(nil)
 
 	if len(tinyIDs) != len(ids) {
 		t.Fatalf("mismatched lengths, %d decompressed != %d original ids",
