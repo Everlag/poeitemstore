@@ -5,6 +5,9 @@ import (
 
 	"bytes"
 
+	"io"
+
+	"github.com/Smerity/govarint"
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
 )
@@ -246,15 +249,18 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 //
 // Whenever possible, we avoid allocations.
 type IndexEntry struct {
-	in []byte
+	in         []byte
+	compressed bool
 }
 
 // WrapIndexEntryBytes wraps provided byte slice to allow
 // them to be interpreted as an indexEntry
 //
 // in can be nil.
+//
+// Passed slice is assumed to always be compressed
 func WrapIndexEntryBytes(in []byte) IndexEntry {
-	return IndexEntry{in}
+	return IndexEntry{in, true}
 }
 
 // Unwrap returns the backing array behind an indexEntry
@@ -263,7 +269,79 @@ func WrapIndexEntryBytes(in []byte) IndexEntry {
 // when the IndexEntry has had a destructive method called on it,
 // such as Remove
 func (entry *IndexEntry) Unwrap() []byte {
+	// Lazily compress when necessary
+	entry.compress()
 	return entry.in
+}
+
+// decompress decompresses the internal buffer for an IndexEntry
+//
+// This is called internally as necessary and is idempotent when
+// called more than once.
+func (entry *IndexEntry) decompress() {
+	// Idempotent
+	if !entry.compressed {
+		return
+	}
+	entry.compressed = false
+
+	if entry.in == nil {
+		// Nothing left to do
+		return
+	}
+
+	buf := bytes.NewBuffer(entry.in)
+	dec := govarint.NewU64Base128Decoder(buf)
+	in := make([]byte, len(entry.in)*2)[:0]
+	var id uint64
+	var err error
+	for {
+		id, err = dec.GetU64()
+		if err != nil {
+			break
+		}
+		idBytes := IDFromSequence(id)
+		in = append(in, idBytes[:]...)
+	}
+	if err != io.EOF {
+		if err == nil {
+			panic("nil error while decompressing, expected io.EOF")
+		}
+		panic(fmt.Sprintf("encountered non-EOF/nil error while decompressing, err=%s",
+			err))
+	}
+
+	entry.in = in
+}
+
+// compress compresses the internal buffer for an IndexEntry
+//
+// This is called internally as necessary and is idempotent when
+// called more than once.
+func (entry *IndexEntry) compress() {
+	// Idempotent
+	if entry.compressed {
+		return
+	}
+	entry.compressed = true
+
+	if entry.in == nil {
+		// Nothing left to do
+		return
+	}
+
+	var buf bytes.Buffer
+	enc := govarint.NewU64Base128Encoder(&buf)
+	for i := 0; i < len(entry.in); i += IDSize {
+		id := btoi64(entry.in[i : i+IDSize])
+		_, err := enc.PutU64(id)
+		if err != nil {
+			panic(fmt.Sprintf("failed to compress, err=%s", err))
+		}
+	}
+	enc.Close()
+
+	entry.in = buf.Bytes()
 }
 
 // Append adds another ID to the entry
@@ -271,6 +349,9 @@ func (entry *IndexEntry) Unwrap() []byte {
 // If an id is already present in the id, we end up with a duplicate.
 // Such is life.
 func (entry *IndexEntry) Append(id ID) {
+	// Decompress as necessary
+	entry.decompress()
+
 	if entry.in == nil {
 		// Copy necessary due to boltdb semantics for passed buffers
 		entry.in = make([]byte, len(id))
@@ -297,6 +378,9 @@ func (entry *IndexEntry) Append(id ID) {
 // to nil. In that case, its the callers responsibility to ensure they
 // Unwrap a valid byte slice.
 func (entry *IndexEntry) Remove(id ID) {
+	// Decompress as necessary
+	entry.decompress()
+
 	// If the backing array is nil, then we can't remove an ID
 	// and the database is inconsistent.
 	if entry.in == nil {
@@ -333,6 +417,23 @@ func (entry *IndexEntry) Remove(id ID) {
 	removed = append(removed, entry.in[:index]...)
 	removed = append(removed, entry.in[index+IDSize:]...)
 	entry.in = removed
+}
+
+// GetIDs returns all IDs in the entry.
+//
+// NOTE: this will allocate for days, so be warned
+func (entry *IndexEntry) GetIDs() []ID {
+	entry.decompress()
+
+	ids := make([]ID, len(entry.in)/IDSize)
+
+	for i := 0; i < len(entry.in); i += IDSize {
+		var id ID
+		copy(id[:], entry.in[i:i+IDSize])
+		ids[i/IDSize] = id
+	}
+
+	return ids
 }
 
 // IndexEntryCount returns the number of index entries across all leagues

@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
 )
@@ -135,16 +133,9 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (int, error) {
 	valid := values[0] >= q.minModValues[modIndex]
 	var idCount int
 	if valid {
-		if len(v)%IDSize != 0 {
-			panic(fmt.Sprintf("malformed ids value in index, ids not divisible; id=%v", v))
-		}
-		idCount = len(v) / IDSize
-		for pos := 0; pos < idCount*IDSize; pos += IDSize {
-			// NOTE: the copy here is actually completely required
-			// due to the fact that boltdb makes no guarantee regarding what
-			// keys and value slices contain when outside a transaction.
-			var id ID
-			copy(id[:], v[pos:pos+IDSize])
+		wrapped := WrapIndexEntryBytes(v)
+		ids := wrapped.GetIDs()
+		for _, id := range ids {
 			q.ctx.sets[modIndex][id] = struct{}{}
 		}
 	} else {
