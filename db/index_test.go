@@ -15,15 +15,12 @@ func TestIndexEntryAppendGet(t *testing.T) {
 		IDFromSequence(18),
 	}
 
-	entry := WrapIndexEntryBytes(nil)
+	entry := IndexEntry(nil)
 	for _, id := range ids {
-		entry.Append(id)
+		entry = IndexEntryAppend(entry, id)
 	}
 
-	tiny := entry.Unwrap()
-
-	tinyEntry := WrapIndexEntryBytes(tiny)
-	tinyIDs := tinyEntry.GetIDs(nil)
+	tinyIDs := entry.GetIDs(nil)
 
 	if len(tinyIDs) != len(ids) {
 		t.Fatalf("mismatched lengths, %d decompressed != %d original ids",

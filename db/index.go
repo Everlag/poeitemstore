@@ -186,9 +186,9 @@ func IndexItems(items []Item, tx *bolt.Tx) (int, error) {
 			// Check for pre-existing items in the bucket, if none, we establish
 			// the bucket
 			existing := itemModBucket.Get(modKey)
-			wrapped := WrapIndexEntryBytes(existing)
-			wrapped.Append(item.ID)
-			itemModBucket.Put(modKey, wrapped.Unwrap())
+			wrapped := IndexEntry(existing)
+			wrapped = IndexEntryAppend(wrapped, item.ID)
+			itemModBucket.Put(modKey, wrapped)
 			added++
 		}
 	}
@@ -225,15 +225,14 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 
 			modKey := encodeModIndexKey(mod, item.When)
 			existing := itemModBucket.Get(modKey)
-			wrapped := WrapIndexEntryBytes(existing)
-			wrapped.Remove(item.ID)
-			unwrapped := wrapped.Unwrap()
-			if unwrapped == nil {
+			wrapped := IndexEntry(existing)
+			wrapped = IndexEntryRemove(wrapped, item.ID)
+			if wrapped == nil {
 				// Nothing else resides at this index
 				itemModBucket.Delete(modKey)
 			} else {
 				// Add back with removed data
-				itemModBucket.Put(modKey, unwrapped)
+				itemModBucket.Put(modKey, wrapped)
 			}
 		}
 	}
@@ -245,39 +244,18 @@ func DeindexItems(items []Item, tx *bolt.Tx) error {
 // IndexEntry represents bytes interpreted as an entry within the index
 //
 // Whenever possible, we avoid allocations.
-type IndexEntry struct {
-	in []byte
-}
+type IndexEntry []byte
 
-// WrapIndexEntryBytes wraps provided byte slice to allow
-// them to be interpreted as an indexEntry
-//
-// in can be nil.
-//
-// Passed slice is assumed to always be compressed
-func WrapIndexEntryBytes(in []byte) IndexEntry {
-	return IndexEntry{in}
-}
-
-// Unwrap returns the backing array behind an indexEntry
-//
-// NOTE: this can return nil. Hence, check your return values
-// when the IndexEntry has had a destructive method called on it,
-// such as Remove
-func (entry *IndexEntry) Unwrap() []byte {
-	return entry.in
-}
-
-// Append adds another ID to the entry
+// IndexEntryAppend adds another ID to the entry
 //
 // If an id is already present in the id, we end up with a duplicate.
 // Such is life.
-func (entry *IndexEntry) Append(id ID) {
-
-	if entry.in == nil {
+func IndexEntryAppend(entry IndexEntry, id ID) IndexEntry {
+	var result []byte
+	if entry == nil {
 		// Copy necessary due to boltdb semantics for passed buffers
-		entry.in = make([]byte, len(id))
-		copy(entry.in, id[:])
+		result = make([]byte, len(id))
+		copy(result, id[:])
 	} else {
 		// We assume item not already present in bucket.
 		// If it is, we end up with a duplicate.
@@ -285,25 +263,24 @@ func (entry *IndexEntry) Append(id ID) {
 		// Allocate a buffer large enough for an append
 		// without another allocation.
 		// Yes, this looks super dirty. TODO: cleanup D:
-		appended := make([]byte, len(entry.in)+IDSize)[:0]
-		appended = append(appended, entry.in...)
-		appended = append(appended, id[:]...)
-
-		entry.in = appended
+		result = make([]byte, len(entry)+IDSize)[:0]
+		result = append(result, entry...)
+		result = append(result, id[:]...)
 	}
 
+	return IndexEntry(result)
 }
 
-// Remove removes a given ID from the entry
+// IndexEntryRemove removes a given ID from the entry
 //
 // If the ID is the last of the entry, the backing slice is set
 // to nil. In that case, its the callers responsibility to ensure they
 // Unwrap a valid byte slice.
-func (entry *IndexEntry) Remove(id ID) {
+func IndexEntryRemove(entry IndexEntry, id ID) IndexEntry {
 
 	// If the backing array is nil, then we can't remove an ID
 	// and the database is inconsistent.
-	if entry.in == nil {
+	if entry == nil {
 		panic(fmt.Sprintf("attempted to remove ID from nil IndexEntry, id=%v",
 			id))
 	}
@@ -311,8 +288,8 @@ func (entry *IndexEntry) Remove(id ID) {
 	// For removal, we Stride over the array in IDSize increments
 	// and call Equal to determine which index we remove.
 	index := -1 // Index is in terms of IDSize increments
-	for i := 0; i < len(entry.in); i += IDSize {
-		equal := bytes.Equal(id[:], entry.in[i:i+IDSize])
+	for i := 0; i < len(entry); i += IDSize {
+		equal := bytes.Equal(id[:], entry[i:i+IDSize])
 		if equal {
 			index = i
 			break
@@ -325,38 +302,44 @@ func (entry *IndexEntry) Remove(id ID) {
 	}
 
 	// Check if this is the last entry, if yes, then easy nil.
-	if len(entry.in) == IDSize {
-		entry.in = nil
-		return
+	if len(entry) == IDSize {
+		return nil
 	}
 	// Remove the entry using fewest allocations possible.
 	//
 	// We have to asssume our internal buffer for the entry came from
 	// bolt, hence the new buffer to mutate.
-	removed := make([]byte, len(entry.in)-IDSize)[:0]
-	removed = append(removed, entry.in[:index]...)
-	removed = append(removed, entry.in[index+IDSize:]...)
-	entry.in = removed
+	removed := make([]byte, len(entry)-IDSize)[:0]
+	removed = append(removed, entry[:index]...)
+	removed = append(removed, entry[index+IDSize:]...)
+	return removed
+}
+
+// ForEachID calls the provided callback with each id contained
+// within the IndexEntry. Order of returned IDs is in Append-descending
+func (entry IndexEntry) ForEachID(cb func(id ID)) {
+	var id ID
+	for i := 0; i < len(entry); i += IDSize {
+		copy(id[:], entry[i:i+IDSize])
+		cb(id)
+	}
 }
 
 // GetIDs returns all IDs in the entry.
 //
 // Provided array slice will be resized if necessary or a new one
 // will be created if passed nil. Updated slice will be returned.
-func (entry *IndexEntry) GetIDs(ids []ID) []ID {
+func (entry IndexEntry) GetIDs(ids []ID) []ID {
 
-	idCount := len(entry.in) / IDSize
-	if ids == nil {
-		ids = make([]ID, idCount)
-	}
-	if cap(ids) < idCount {
+	idCount := len(entry) / IDSize
+	if ids == nil || cap(ids) < idCount {
 		ids = make([]ID, idCount)
 	}
 	ids = ids[:0]
 
-	for i := 0; i < len(entry.in); i += IDSize {
+	for i := 0; i < len(entry); i += IDSize {
 		var id ID
-		copy(id[:], entry.in[i:i+IDSize])
+		copy(id[:], entry[i:i+IDSize])
 		ids = append(ids, id)
 	}
 
