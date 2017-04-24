@@ -4,6 +4,18 @@ This is a [Path of Exile stash tab](https://www.pathofexile.com/developer/docs/a
 
 All tests are in `dbTest` and test only functionality exposed by `db`.
 
+## Optimizations
+
+Crossed out indicates didn't work out.
+
+### Indexes
+
+Bucketing IDs into temporally and value-wise similar
+
+~~Compression of index values~~ overhead was too high for our workload, may revist in future with added metadata and optional compression based on workload in IndexEntry.
+
+~~Set pooling~~ clearing maps costs too much between IndexQueries. Switching to bitsets, both [dense](https://github.com/willf/bitset) and [sparse](https://github.com/js-ojus/sparsebitset) end up with significantly poorer performance. Did not try roaring bitmaps.
+
 ## License
 
 poeitemstore is licensed under either of
