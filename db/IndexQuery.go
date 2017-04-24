@@ -5,6 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var indexSetsPool = NewIDMapPool(10)
+
 // LookupItemsMultiModStrideLength determines how many items
 // is included in a stride of LookupItemsMultiMod.
 //
@@ -96,8 +98,9 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	// Create our item sets
 	sets := make([]map[ID]struct{}, len(q.mods))
 	for i := range sets {
+		sets[i] = indexSetsPool.Borrow(LookupItemsMultiModStrideLength * 3)
 		// Pre-allocate maps to fit 3 strides worth of data.
-		sets[i] = make(map[ID]struct{}, LookupItemsMultiModStrideLength*3)
+		// sets[i] = make(map[ID]struct{}, LookupItemsMultiModStrideLength*3)
 	}
 
 	q.ctx = &indexQueryContext{
@@ -109,6 +112,9 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 
 // clearContext removes transaction dependent context from IndexQuery
 func (q *IndexQuery) clearContext() {
+	for _, set := range q.ctx.sets {
+		indexSetsPool.Give(set)
+	}
 	q.ctx = nil
 }
 
