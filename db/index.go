@@ -24,7 +24,7 @@ func getLeagueIndexBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 	// and will always appear on a valid leagueBucket
 	indices := leagueBucket.Bucket([]byte(indiceBucket))
 	if indices == nil {
-		panic(fmt.Sprintf("%s bucket not found when expected", itemStoreBucket))
+		panic(fmt.Sprintf("%s bucket not found when expected", indiceBucket))
 	}
 
 	return indices
@@ -36,32 +36,37 @@ func getLeagueIndexBucket(league LeagueHeapID, tx *bolt.Tx) *bolt.Bucket {
 // This WILL write if a bucket is not found. Hence, readonly tx unsafe.
 func getItemModIndexBucket(rootType, rootFlavor, mod StringHeapID,
 	league LeagueHeapID, tx *bolt.Tx) (*bolt.Bucket, error) {
-	// Keys towards the bucket we want to return, they may or may not exist
-	keys := []StringHeapID{rootType, rootFlavor, mod}
+
+	var err error
 
 	// Start at the index bucket
-	currentBucket := getLeagueIndexBucket(league, tx)
-
-	// Create all of the intervening keys
-	for _, key := range keys {
-		keyBytes := key.ToBytes()
-		prevBucket := currentBucket.Bucket(keyBytes)
-		if prevBucket == nil {
-			// Create the bucket
-			var err error
-			prevBucket, err = currentBucket.CreateBucket(keyBytes)
-			if err != nil {
-				return nil,
-					errors.Wrapf(err,
-						"failed to add index intermediary bucket bucket, bucket=%s, chain=%v",
-						key, keys)
-			}
+	indexBucket := getLeagueIndexBucket(league, tx)
+	rootTypeBucket := indexBucket.Bucket(rootType.ToBytes())
+	if rootTypeBucket == nil {
+		rootTypeBucket, err = indexBucket.CreateBucket(rootType.ToBytes())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to add index rootType bucket")
 		}
-		currentBucket = prevBucket
+	}
+
+	rootFlavorBucket := rootTypeBucket.Bucket(rootFlavor.ToBytes())
+	if rootFlavorBucket == nil {
+		rootFlavorBucket, err = rootTypeBucket.CreateBucket(rootFlavor.ToBytes())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to add index rootFlavor bucket")
+		}
+	}
+
+	modBucket := rootFlavorBucket.Bucket(mod.ToBytes())
+	if modBucket == nil {
+		modBucket, err = rootFlavorBucket.CreateBucket(mod.ToBytes())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to add index mod bucket")
+		}
 	}
 
 	// If we made it through, our currentBucket should be the one we want
-	return currentBucket, nil
+	return modBucket, nil
 }
 
 // getItemModIndexBucketRO returns a bucket which a given mod can be put
@@ -70,24 +75,27 @@ func getItemModIndexBucket(rootType, rootFlavor, mod StringHeapID,
 // This WILL NOT write if a bucket is not found. Hence, readonly tx unsafe.
 func getItemModIndexBucketRO(rootType, rootFlavor, mod StringHeapID,
 	league LeagueHeapID, tx *bolt.Tx) (*bolt.Bucket, error) {
-	// Keys towards the bucket we want to return, they may or may not exist
-	keys := []StringHeapID{rootType, rootFlavor, mod}
 
 	// Start at the index bucket
-	currentBucket := getLeagueIndexBucket(league, tx)
+	indexBucket := getLeagueIndexBucket(league, tx)
 
-	// Traverse all intervening buckets
-	for _, key := range keys {
-		keyBytes := key.ToBytes()
-		prevBucket := currentBucket.Bucket(keyBytes)
-		if prevBucket == nil {
-			return nil, errors.Errorf("invalid bucket, key=%d, chain=%v", key, keys)
-		}
-		currentBucket = prevBucket
+	rootTypeBucket := indexBucket.Bucket(rootType.ToBytes())
+	if rootTypeBucket == nil {
+		return nil, errors.New("invalid rootType, no bucket found")
+	}
+
+	rootFlavorBucket := rootTypeBucket.Bucket(rootFlavor.ToBytes())
+	if rootFlavorBucket == nil {
+		return nil, errors.New("invalid rootFlavor, no bucket found")
+	}
+
+	modBucket := rootFlavorBucket.Bucket(mod.ToBytes())
+	if modBucket == nil {
+		return nil, errors.New("invalid mod, no bucket found")
 	}
 
 	// If we made it through, our currentBucket should be the one we want
-	return currentBucket, nil
+	return modBucket, nil
 }
 
 // ModIndexKeySuffixLength allows us to fetch variable numbers
