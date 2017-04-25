@@ -44,7 +44,7 @@ type indexQueryContext struct {
 	//
 	// These are positionally related to the parent's IndexQuery.mods
 	cursors []*bolt.Cursor
-	sets    []map[ID]struct{}
+	set     map[ID]int
 }
 
 // Remove a given cursor from tracking on the context
@@ -96,15 +96,11 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	}
 
 	// Create our item sets
-	sets := make([]map[ID]struct{}, len(q.mods))
-	for i := range sets {
-		sets[i] = indexSetsPool.Borrow(LookupItemsMultiModStrideLength * 3)
-		// Pre-allocate maps to fit 3 strides worth of data.
-		// sets[i] = make(map[ID]struct{}, LookupItemsMultiModStrideLength*3)
-	}
+	prealloc := LookupItemsMultiModStrideLength * 3 * len(q.mods)
+	set := make(map[ID]int, prealloc)
 
 	q.ctx = &indexQueryContext{
-		tx, validCursors, cursors, sets,
+		tx, validCursors, cursors, set,
 	}
 
 	return nil
@@ -112,9 +108,6 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 
 // clearContext removes transaction dependent context from IndexQuery
 func (q *IndexQuery) clearContext() {
-	for _, set := range q.ctx.sets {
-		indexSetsPool.Give(set)
-	}
 	q.ctx = nil
 }
 
@@ -141,7 +134,12 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (int, error) {
 	if valid {
 		wrapped := IndexEntry(v)
 		wrapped.ForEachID(func(id ID) {
-			q.ctx.sets[modIndex][id] = struct{}{}
+			shared, ok := q.ctx.set[id]
+			if !ok {
+				shared = 0
+			}
+			shared++
+			q.ctx.set[id] = shared
 		})
 	} else {
 		// Remove from cursors we're interested in
@@ -211,20 +209,8 @@ func (q *IndexQuery) intersectIDSets(result []ID) int {
 
 	// Intersect the sets by taking one of them
 	// and seeing how many of its items appear in others
-	firstSet := q.ctx.sets[0]
-	for id := range firstSet {
-		// sharedCount always starts at one because it
-		//  is always shared with the firstSet
-		sharedCount := 1
-		for _, other := range q.ctx.sets[1:] {
-			_, ok := other[id]
-			if !ok {
-				// No point in continuing to look at unshared items
-				break
-			}
-			sharedCount++
-		}
-		if sharedCount == len(q.ctx.sets) {
+	for id, shared := range q.ctx.set {
+		if shared == len(q.mods) {
 			foundIDs++
 			// Add the item if we need to
 			if result != nil {
