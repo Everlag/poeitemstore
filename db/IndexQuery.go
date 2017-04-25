@@ -45,6 +45,7 @@ type indexQueryContext struct {
 	// These are positionally related to the parent's IndexQuery.mods
 	cursors []*bolt.Cursor
 	set     map[ID]int
+	result  []ID
 }
 
 // Remove a given cursor from tracking on the context
@@ -99,8 +100,11 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	prealloc := LookupItemsMultiModStrideLength * 3 * len(q.mods)
 	set := make(map[ID]int, prealloc)
 
+	// And where we store our final result, preallocated but zero length
+	result := make([]ID, 0, q.maxDesired)
+
 	q.ctx = &indexQueryContext{
-		tx, validCursors, cursors, set,
+		tx, validCursors, cursors, set, result,
 	}
 
 	return nil
@@ -109,6 +113,22 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 // clearContext removes transaction dependent context from IndexQuery
 func (q *IndexQuery) clearContext() {
 	q.ctx = nil
+}
+
+// registerID registers an ID as having matched a mod.
+//
+// When an ID has matched all mods, it is removed and added to the result
+func (q *IndexQuery) registerID(id ID) {
+	shared, ok := q.ctx.set[id]
+	if !ok {
+		shared = 0
+	}
+	shared++
+	q.ctx.set[id] = shared
+	if shared >= len(q.mods) {
+		q.ctx.result = append(q.ctx.result, id)
+		delete(q.ctx.set, id)
+	}
 }
 
 // checkPair determines if a pair is acceptable for our query
@@ -133,14 +153,7 @@ func (q *IndexQuery) checkPair(k, v []byte, modIndex int) (int, error) {
 	var idCount int
 	if valid {
 		wrapped := IndexEntry(v)
-		wrapped.ForEachID(func(id ID) {
-			shared, ok := q.ctx.set[id]
-			if !ok {
-				shared = 0
-			}
-			shared++
-			q.ctx.set[id] = shared
-		})
+		wrapped.ForEachID(q.registerID)
 	} else {
 		// Remove from cursors we're interested in
 		q.ctx.removeCursor(modIndex)
@@ -192,46 +205,12 @@ func (q *IndexQuery) stride() error {
 	return nil
 }
 
-// intersectItemIDMaps returns how many items in the given sets appear
-// across all them. The found items have their IDs put in result
-// up to its length.
-//
-// Pass a nil result to obtain just the count
-func (q *IndexQuery) intersectIDSets(result []ID) int {
-
-	// Keep track of our maximum matches
-	//
-	// When nil result, we account for that in logic
-	n := len(result)
-
-	// And how many we have found so far
-	foundIDs := 0
-
-	// Intersect the sets by taking one of them
-	// and seeing how many of its items appear in others
-	for id, shared := range q.ctx.set {
-		if shared == len(q.mods) {
-			foundIDs++
-			// Add the item if we need to
-			if result != nil {
-				result[foundIDs-1] = id
-			}
-			// Exit early if we reach capacity
-			if result != nil && foundIDs >= n {
-				return foundIDs
-			}
-		}
-	}
-
-	return foundIDs
-}
-
 // Run initialises transaction context for a query and attempts
 // to find desired items.
 func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 
-	// ids presized...
-	var ids []ID
+	// Always clear the context when we exit
+	defer q.clearContext()
 
 	err := db.View(func(tx *bolt.Tx) error {
 
@@ -239,8 +218,6 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 		if err != nil {
 			return errors.New("failed to initialize query context")
 		}
-		// Always clear the context when we exit
-		defer q.clearContext()
 
 		// Set all of our cursors to be at their ends
 		for i, c := range q.ctx.cursors {
@@ -265,19 +242,12 @@ func (q *IndexQuery) Run(db *bolt.DB) ([]ID, error) {
 				return errors.Wrap(err, "failed a stride")
 			}
 
-			foundIDs = q.intersectIDSets(nil)
+			// foundIDs = q.intersectIDSets(nil)
+			foundIDs = len(q.ctx.result)
 		}
-
-		// Cap result to desired length as required
-		if foundIDs > q.maxDesired {
-			foundIDs = q.maxDesired
-		}
-		// Perform one more intersection to find our return value
-		ids = make([]ID, foundIDs)
-		q.intersectIDSets(ids)
 
 		return nil
 	})
 
-	return ids, err
+	return q.ctx.result, err
 }
