@@ -97,8 +97,8 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zcua != 14 {
-		err = msgp.ArrayError{Wanted: 14, Got: zcua}
+	if zcua != 13 {
+		err = msgp.ArrayError{Wanted: 13, Got: zcua}
 		return
 	}
 	err = dc.ReadExactBytes(z.ID[:])
@@ -206,17 +206,13 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.UpdateSequence, err = dc.ReadUint16()
-	if err != nil {
-		return
-	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 14
-	err = en.Append(0x9e)
+	// array header, size 13
+	err = en.Append(0x9d)
 	if err != nil {
 		return err
 	}
@@ -287,18 +283,14 @@ func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.UpdateSequence)
-	if err != nil {
-		return
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 14
-	o = append(o, 0x9e)
+	// array header, size 13
+	o = append(o, 0x9d)
 	o = msgp.AppendBytes(o, z.ID[:])
 	o = msgp.AppendBytes(o, z.GGGID[:])
 	o = msgp.AppendBytes(o, z.Stash[:])
@@ -318,7 +310,6 @@ func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 		o = msgp.AppendUint16(o, z.Mods[zwht].Value)
 	}
 	o = msgp.AppendBytes(o, z.When[:])
-	o = msgp.AppendUint16(o, z.UpdateSequence)
 	return
 }
 
@@ -329,8 +320,8 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zdnj != 14 {
-		err = msgp.ArrayError{Wanted: 14, Got: zdnj}
+	if zdnj != 13 {
+		err = msgp.ArrayError{Wanted: 13, Got: zdnj}
 		return
 	}
 	bts, err = msgp.ReadExactBytes(bts, z.ID[:])
@@ -438,17 +429,13 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.UpdateSequence, bts, err = msgp.ReadUint16Bytes(bts)
-	if err != nil {
-		return
-	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Item) Msgsize() (s int) {
-	s = 1 + msgp.ArrayHeaderSize + (IDSize * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint16Size + msgp.BoolSize + msgp.BoolSize + msgp.ArrayHeaderSize + (len(z.Mods) * (11 + msgp.Uint32Size + msgp.Uint16Size)) + msgp.ArrayHeaderSize + (TimestampSize * (msgp.ByteSize)) + msgp.Uint16Size
+	s = 1 + msgp.ArrayHeaderSize + (IDSize * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint32Size + msgp.Uint16Size + msgp.BoolSize + msgp.BoolSize + msgp.ArrayHeaderSize + (len(z.Mods) * (11 + msgp.Uint32Size + msgp.Uint16Size)) + msgp.ArrayHeaderSize + (TimestampSize * (msgp.ByteSize))
 	return
 }
 

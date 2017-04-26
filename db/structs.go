@@ -8,6 +8,10 @@ import (
 	blake2b "github.com/minio/blake2b-simd"
 )
 
+// StringHeapIDSize is the number of bytes a StringHeapID
+// takes up when converted to bytes.
+const StringHeapIDSize = 4
+
 // StringHeapID maps to a stored string identifier.
 //
 // This creates a layer of indirection when rebuilding items but
@@ -24,6 +28,10 @@ func StringHeapIDFromBytes(bytes []byte) StringHeapID {
 func (id StringHeapID) ToBytes() []byte {
 	return i32tob(uint32(id))
 }
+
+// LeagueHeapIDSize is the number of bytes taken up by a LeagueHeapID
+// when converted to bytes
+const LeagueHeapIDSize = 2
 
 // LeagueHeapID maps to a stored string identifier specific to league
 //
@@ -155,20 +163,19 @@ type ItemMod struct {
 // Item represents a compact record of an item.
 //msgp:tuple Item
 type Item struct {
-	ID             ID
-	GGGID          GGGID        // Allows mapping from simple ID to UUID
-	Stash          GGGID        // Allows access to stash and corresponding metadata
-	Name           StringHeapID // On StringHeap
-	TypeLine       StringHeapID // On StringHeap
-	Note           StringHeapID // On StringHeap
-	RootType       StringHeapID // On StringHeap
-	RootFlavor     StringHeapID // On StringHeap
-	League         LeagueHeapID // On LeagueHeap
-	Corrupted      bool
-	Identified     bool
-	Mods           []ItemMod
-	When           Timestamp // When this stash update was processed
-	UpdateSequence uint16    // The sequence number associated with this item
+	ID         ID
+	GGGID      GGGID        // Allows mapping from simple ID to UUID
+	Stash      GGGID        // Allows access to stash and corresponding metadata
+	Name       StringHeapID // On StringHeap
+	TypeLine   StringHeapID // On StringHeap
+	Note       StringHeapID // On StringHeap
+	RootType   StringHeapID // On StringHeap
+	RootFlavor StringHeapID // On StringHeap
+	League     LeagueHeapID // On LeagueHeap
+	Corrupted  bool
+	Identified bool
+	Mods       []ItemMod
+	When       Timestamp // When this stash update was processed
 }
 
 // Stash represents a compact record of a stash.
