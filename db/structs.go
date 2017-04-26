@@ -5,6 +5,8 @@ package db
 import (
 	"time"
 
+	"bytes"
+
 	blake2b "github.com/minio/blake2b-simd"
 )
 
@@ -176,6 +178,36 @@ type Item struct {
 	Identified bool
 	Mods       []ItemMod
 	When       Timestamp // When this stash update was processed
+}
+
+// Equal determines whether o(ther) is equal to this Item.
+//
+// NOTE: this is designed for external use and should not be used
+// for internal calculations.
+func (i Item) Equal(o Item) bool {
+
+	// Perform the mod intersection first
+	modIntersect := make(map[ItemMod]struct{}, len(i.Mods))
+	for _, mod := range i.Mods {
+		modIntersect[mod] = struct{}{}
+	}
+	for _, mod := range o.Mods {
+		if _, ok := modIntersect[mod]; !ok {
+			return false
+		}
+	}
+
+	// Then check everything else
+	return bytes.Equal(i.ID[:], o.ID[:]) &&
+		bytes.Equal(i.GGGID[:], o.GGGID[:]) &&
+		i.Name == o.Name &&
+		i.TypeLine == o.TypeLine &&
+		i.Note == o.Note &&
+		i.League == o.League &&
+		i.Corrupted == o.Corrupted &&
+		i.Identified == o.Identified &&
+		bytes.Equal(i.When[:], o.When[:])
+
 }
 
 // Stash represents a compact record of a stash.
