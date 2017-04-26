@@ -104,14 +104,13 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 		// Build compact items from the ids and fill in non-StringHeap information
 		for i, item := range items {
 			compact[i] = Item{
-				ID:             ID{}, // Explicitly empty on entrance
-				GGGID:          GGGIDFromUID(item.ID),
-				Stash:          GGGIDFromUID(item.StashID),
-				League:         leagueIds[i],
-				Identified:     item.Identified,
-				Corrupted:      item.Corrupted,
-				UpdateSequence: uint16(i),
-				When:           when,
+				ID:         ID{}, // Explicitly empty on entrance
+				GGGID:      GGGIDFromUID(item.ID),
+				Stash:      GGGIDFromUID(item.StashID),
+				League:     leagueIds[i],
+				Identified: item.Identified,
+				Corrupted:  item.Corrupted,
+				When:       when,
 			}
 		}
 
