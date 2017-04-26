@@ -78,12 +78,12 @@ func (q *ItemStoreQuery) checkItem(item Item) bool {
 
 // checkPair determines if a pair is acceptable for our query
 func (q *ItemStoreQuery) checkPair(k, v []byte) (bool, error) {
-	var item Item
-	_, err := item.UnmarshalMsg(v)
+	var comp CompressedItem
+	_, err := comp.UnmarshalMsg(v)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to UnmarshalMsg itemstore item")
 	}
-	return q.checkItem(item), nil
+	return q.checkItem(Item(comp)), nil
 }
 
 // Run initialises transaction context for a query and attempts

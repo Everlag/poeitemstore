@@ -65,7 +65,8 @@ func addItems(items []Item, tx *bolt.Tx) (int, error) {
 	for _, item := range items {
 
 		// Serialize the item
-		serial, err := item.MarshalMsg(nil)
+		comp := CompressedItem(item)
+		serial, err := comp.MarshalMsg(nil)
 		if err != nil {
 			return 0, errors.Wrap(err, "failed to Marshal Item")
 		}
@@ -189,7 +190,9 @@ func GetItemByID(id ID, league LeagueHeapID, tx *bolt.Tx) (Item, error) {
 	}
 
 	// Unmarshal the item
-	_, err := item.UnmarshalMsg(itemBytes)
+	var comp CompressedItem
+	_, err := comp.UnmarshalMsg(itemBytes)
+	item = Item(comp)
 	return item, err
 
 }

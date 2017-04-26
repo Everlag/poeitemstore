@@ -15,6 +15,8 @@ type CompressedItem Item
 
 // DecodeMsg implements msgp.Decodable
 func (z *CompressedItem) DecodeMsg(dc *msgp.Reader) (err error) {
+	panic("DecodeMsg unimplemented on CompressedItem")
+
 	var tmpUint32 uint32
 	if tmpUint32, err = dc.ReadArrayHeader(); err != nil {
 		return
@@ -107,6 +109,8 @@ func (z *CompressedItem) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *CompressedItem) EncodeMsg(en *msgp.Writer) (err error) {
+	panic("EncodeMsg unimplemented on CompressedItem")
+
 	// array header, size 13
 	if err = en.Append(0x9d); err != nil {
 		return err
@@ -225,73 +229,71 @@ func (z *CompressedItem) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 
-	// 	comp := intcoder.NewIntegerEncoder(4*4 + 1*16)
-	// comp.Write(int64(z.Name))
-	// comp.Write(int64(z.TypeLine))
-	// comp.Write(int64(z.Note))
-	// comp.Write(int64(z.RootType))
-	// comp.Write(int64(z.RootFlavor))
-	// comp.Write(int64(z.League))
-	// compBytes, err := comp.Bytes()
-	// if err != nil {
-	// 	return
-	// }
-	// o = msgp.AppendArrayHeader(o, uint32(len(compBytes)))
-	// o = msgp.AppendBytes(o, compBytes)
+	// Start dealing with compressed data!
 	if tmpUint32, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
 		return
 	}
 	buf := make([]byte, tmpUint32)
-	var uncomp intcoder.IntegerDecoder
-	uncomp.SetBytes(buf)
+	if bts, err = msgp.ReadExactBytes(bts, buf); err != nil {
+		return
+	}
+	var dec intcoder.IntegerDecoder
+	dec.SetBytes(buf)
 
-	fmt.Printf("reading %d compressed bytes\n", tmpUint32)
-
-	if !uncomp.Next() {
-		err = fmt.Errorf("missing decompressed values")
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed Name")
+		return
+	}
+	z.Name = StringHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
 		return
 	}
 
-	z.Name = StringHeapID(uncomp.Read())
-	if err = uncomp.Error(); err != nil {
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed TypeLine")
+		return
+	}
+	z.TypeLine = StringHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
 		return
 	}
 
-	fmt.Println("holy shit I decoded the name!")
-	fmt.Println(z.Name)
-
-	// TODO: decode EVERYTHING else we compressed!
-
-	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed Note")
 		return
 	}
-	z.Name = StringHeapID(tmpUint32)
-
-	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
+	z.Note = StringHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
 		return
 	}
-	z.TypeLine = StringHeapID(tmpUint32)
 
-	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed RootType")
 		return
 	}
-	z.Note = StringHeapID(tmpUint32)
-
-	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
+	z.RootType = StringHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
 		return
 	}
-	z.RootType = StringHeapID(tmpUint32)
 
-	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed RootFlavor")
 		return
 	}
-	z.RootFlavor = StringHeapID(tmpUint32)
-
-	var tmpUint16 uint16
-	if tmpUint16, bts, err = msgp.ReadUint16Bytes(bts); err != nil {
+	z.RootFlavor = StringHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
 		return
 	}
-	z.League = LeagueHeapID(tmpUint16)
+
+	if !dec.Next() {
+		err = fmt.Errorf("missing decompressed League")
+		return
+	}
+	z.League = LeagueHeapID(dec.Read())
+	if err = dec.Error(); err != nil {
+		return
+	}
+	// Done dealing with compressed data!
 
 	if z.Corrupted, bts, err = msgp.ReadBoolBytes(bts); err != nil {
 		return
