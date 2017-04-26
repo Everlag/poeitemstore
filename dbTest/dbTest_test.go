@@ -253,5 +253,9 @@ func TestMain(m *testing.M) {
 		env.Close()
 	}
 
+	// Print information about db pool's
+	stats := db.IDPoolStats()
+	fmt.Print(stats.String())
+
 	os.Exit(ret)
 }

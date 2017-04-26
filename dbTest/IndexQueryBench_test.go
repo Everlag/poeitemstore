@@ -67,6 +67,10 @@ func runBenchQuery(search cmd.MultiModSearch, bdb *bolt.DB, b *testing.B) {
 	if len(benchQueryResult) < search.MaxDesired {
 		b.Fatalf("failed to find enough results in query")
 	}
+
+	// Return the slice to its rightful owner. This saves allocations
+	// but is optional because this is go and we have a garbage collector.
+	db.GiveIDSlice(benchQueryResult)
 }
 
 // BenchmarkSingleIndexQuery runs a single query on the database.

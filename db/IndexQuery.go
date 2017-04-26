@@ -5,8 +5,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var indexSetsPool = NewIDMapPool(10)
-
 // LookupItemsMultiModStrideLength determines how many items
 // is included in a stride of LookupItemsMultiMod.
 //
@@ -101,7 +99,10 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 	set := make(map[ID]int, prealloc)
 
 	// And where we store our final result, preallocated but zero length
-	result := make([]ID, 0, q.maxDesired)
+	//
+	// NOTE: we never Give this buffer back as its the result of the query,
+	// so if its in the pool, we're happy.
+	result := idPool.Borrow(q.maxDesired)
 
 	q.ctx = &indexQueryContext{
 		tx, validCursors, cursors, set, result,
