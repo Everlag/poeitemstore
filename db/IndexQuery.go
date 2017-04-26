@@ -96,13 +96,14 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 
 	// Create our item sets
 	prealloc := LookupItemsMultiModStrideLength * 3 * len(q.mods)
-	set := make(map[ID]int, prealloc)
+	// set := make(map[ID]int, prealloc)
+	set := idMapPool.Borrow(prealloc).(map[ID]int)
 
 	// And where we store our final result, preallocated but zero length
 	//
 	// NOTE: we never Give this buffer back as its the result of the query,
 	// so if its in the pool, we're happy.
-	result := idPool.Borrow(q.maxDesired)
+	result := idPool.Borrow(q.maxDesired).([]ID)
 
 	q.ctx = &indexQueryContext{
 		tx, validCursors, cursors, set, result,
@@ -113,6 +114,7 @@ func (q *IndexQuery) initContext(tx *bolt.Tx) error {
 
 // clearContext removes transaction dependent context from IndexQuery
 func (q *IndexQuery) clearContext() {
+	idMapPool.Give(q.ctx.set)
 	q.ctx = nil
 }
 
