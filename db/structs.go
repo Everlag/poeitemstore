@@ -1,7 +1,6 @@
 package db
 
 //go:generate msgp
-//msgp:ignore Item
 
 import (
 	"time"

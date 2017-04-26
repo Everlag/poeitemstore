@@ -1,9 +1,20 @@
 package db
 
 import "github.com/tinylib/msgp/msgp"
+import "github.com/Everlag/poeitemstore/intcoder"
+import "fmt"
+
+// Explicitly in case something happens
+//msgp:ignore CompressedItem
+
+// CompressedItem is an Item which has custom msgpack
+// serialization implemented to allow compression.
+//
+// This is a type alias for ease of use.
+type CompressedItem Item
 
 // DecodeMsg implements msgp.Decodable
-func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *CompressedItem) DecodeMsg(dc *msgp.Reader) (err error) {
 	var tmpUint32 uint32
 	if tmpUint32, err = dc.ReadArrayHeader(); err != nil {
 		return
@@ -95,7 +106,7 @@ func (z *Item) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
+func (z *CompressedItem) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 13
 	if err = en.Append(0x9d); err != nil {
 		return err
@@ -159,19 +170,28 @@ func (z *Item) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *CompressedItem) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 13
 	o = append(o, 0x9d)
 	o = msgp.AppendBytes(o, z.ID[:])
 	o = msgp.AppendBytes(o, z.GGGID[:])
 	o = msgp.AppendBytes(o, z.Stash[:])
-	o = msgp.AppendUint32(o, uint32(z.Name))
-	o = msgp.AppendUint32(o, uint32(z.TypeLine))
-	o = msgp.AppendUint32(o, uint32(z.Note))
-	o = msgp.AppendUint32(o, uint32(z.RootType))
-	o = msgp.AppendUint32(o, uint32(z.RootFlavor))
-	o = msgp.AppendUint16(o, uint16(z.League))
+
+	comp := intcoder.NewIntegerEncoder(4*4 + 1*16)
+	comp.Write(int64(z.Name))
+	comp.Write(int64(z.TypeLine))
+	comp.Write(int64(z.Note))
+	comp.Write(int64(z.RootType))
+	comp.Write(int64(z.RootFlavor))
+	comp.Write(int64(z.League))
+	compBytes, err := comp.Bytes()
+	if err != nil {
+		return
+	}
+	o = msgp.AppendArrayHeader(o, uint32(len(compBytes)))
+	o = msgp.AppendBytes(o, compBytes)
+
 	o = msgp.AppendBool(o, z.Corrupted)
 	o = msgp.AppendBool(o, z.Identified)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Mods)))
@@ -186,7 +206,7 @@ func (z *Item) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *CompressedItem) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var tmpUint32 uint32
 	if tmpUint32, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
 		return
@@ -204,6 +224,43 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if bts, err = msgp.ReadExactBytes(bts, z.Stash[:]); err != nil {
 		return
 	}
+
+	// 	comp := intcoder.NewIntegerEncoder(4*4 + 1*16)
+	// comp.Write(int64(z.Name))
+	// comp.Write(int64(z.TypeLine))
+	// comp.Write(int64(z.Note))
+	// comp.Write(int64(z.RootType))
+	// comp.Write(int64(z.RootFlavor))
+	// comp.Write(int64(z.League))
+	// compBytes, err := comp.Bytes()
+	// if err != nil {
+	// 	return
+	// }
+	// o = msgp.AppendArrayHeader(o, uint32(len(compBytes)))
+	// o = msgp.AppendBytes(o, compBytes)
+	if tmpUint32, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
+		return
+	}
+	buf := make([]byte, tmpUint32)
+	var uncomp intcoder.IntegerDecoder
+	uncomp.SetBytes(buf)
+
+	fmt.Printf("reading %d compressed bytes\n", tmpUint32)
+
+	if !uncomp.Next() {
+		err = fmt.Errorf("missing decompressed values")
+		return
+	}
+
+	z.Name = StringHeapID(uncomp.Read())
+	if err = uncomp.Error(); err != nil {
+		return
+	}
+
+	fmt.Println("holy shit I decoded the name!")
+	fmt.Println(z.Name)
+
+	// TODO: decode EVERYTHING else we compressed!
 
 	if tmpUint32, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
 		return
@@ -281,7 +338,7 @@ func (z *Item) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Item) Msgsize() (s int) {
+func (z *CompressedItem) Msgsize() (s int) {
 	s = 1 + msgp.ArrayHeaderSize +
 		(IDSize * (msgp.ByteSize)) +
 		msgp.ArrayHeaderSize + (GGGIDSize * (msgp.ByteSize)) +
