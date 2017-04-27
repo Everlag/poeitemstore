@@ -143,15 +143,48 @@ var idMapPool = NewPool(100, func(minLen int) interface{} {
 		return len(buf.(map[ID]int))
 	})
 
+var itemPool = NewPool(100, func(minLen int) interface{} {
+	return make([]Item, 0, minLen)
+},
+	func(buf interface{}) interface{} {
+		return buf.([]Item)[:0]
+	},
+	func(buf interface{}) int {
+		return cap(buf.([]Item))
+	})
+
 // GiveIDSlice returns a provided []ID to the memory pool.
 //
 // As []ID are used as return values, they escape the package bounds.
-// This allows us to get them back when the caller is done with the,/
+// This allows us to get them back when the caller is done with the.
 func GiveIDSlice(buf []ID) {
 	idPool.Give(buf)
+}
+
+// GiveItemSlice returns a provided []Item to the memory pool.
+//
+// As []Item are used as return values, they escape the package bounds.
+// This allows us to get them back when the caller is done with them
+func GiveItemSlice(buf []Item) {
+	itemPool.Give(buf)
+}
+
+// GiveItemSliceSlice returns a provided [][]Item to the []Item memory pool.
+//
+// As []Item are used as return values, they escape the package bounds.
+// This allows us to get them back when the caller is done with them
+func GiveItemSliceSlice(buf [][]Item) {
+	for i := range buf {
+		itemPool.Give(buf[i])
+	}
 }
 
 // IDPoolStats reports statistics for a Pool
 func IDPoolStats() PoolStats {
 	return idPool.stats
+}
+
+// ItemPoolStats reports statistics for a Pool
+func ItemPoolStats() PoolStats {
+	return itemPool.stats
 }

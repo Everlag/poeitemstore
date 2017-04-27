@@ -256,6 +256,8 @@ func TestMain(m *testing.M) {
 	// Print information about db pool's
 	stats := db.IDPoolStats()
 	fmt.Print(stats.String())
+	stats = db.ItemPoolStats()
+	fmt.Print(stats.String())
 
 	os.Exit(ret)
 }

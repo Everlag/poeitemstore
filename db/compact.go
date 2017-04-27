@@ -88,7 +88,7 @@ func (item Item) Inflate(db *bolt.DB) stash.Item {
 func StashItemsToCompact(items []stash.Item, when Timestamp,
 	db *bolt.DB) ([]Item, error) {
 
-	compact := make([]Item, len(items))
+	compact := itemPool.Borrow(len(items)).([]Item)
 
 	err := db.Update(func(tx *bolt.Tx) error {
 		// Translate leagues on a per-item basis
@@ -103,7 +103,7 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 
 		// Build compact items from the ids and fill in non-StringHeap information
 		for i, item := range items {
-			compact[i] = Item{
+			next := Item{
 				ID:         ID{}, // Explicitly empty on entrance
 				GGGID:      GGGIDFromUID(item.ID),
 				Stash:      GGGIDFromUID(item.StashID),
@@ -112,6 +112,7 @@ func StashItemsToCompact(items []stash.Item, when Timestamp,
 				Corrupted:  item.Corrupted,
 				When:       when,
 			}
+			compact = append(compact, next)
 		}
 
 		// Populate StringHeap related information

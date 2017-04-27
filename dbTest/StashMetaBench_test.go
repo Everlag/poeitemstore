@@ -49,6 +49,9 @@ func BenchmarkCompactAddStashesFast(b *testing.B) {
 			b.Fatalf("failed to AddStashes, err=%s", err)
 		}
 
+		// We include the time taken to return the items to the buffer pool
+		db.GiveItemSliceSlice(cItems)
+
 		when = when.Add(TestTimeDeltas)
 	}
 
@@ -90,10 +93,13 @@ func BenchmarkCompactFast(b *testing.B) {
 		}
 		b.StartTimer()
 
-		_, _, err = db.StashStashToCompact(resp.Stashes, when, bdb)
+		_, cItems, err := db.StashStashToCompact(resp.Stashes, when, bdb)
 		if err != nil {
 			b.Fatalf("failed to convert fat stashes to compact, err=%s\n", err)
 		}
+
+		// We include the time taken to return the items to the buffer pool
+		db.GiveItemSliceSlice(cItems)
 
 		when = when.Add(TestTimeDeltas)
 	}
@@ -141,6 +147,9 @@ func BenchmarkAddStashesFast(b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to AddStashes, err=%s", err)
 		}
+
+		// We include the time taken to return the items to the buffer pool
+		db.GiveItemSliceSlice(cItems)
 
 		when = when.Add(TestTimeDeltas)
 	}
